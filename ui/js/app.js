@@ -394,3 +394,231 @@
   initCharts();
   runConvergence();
 })();
+
+
+// ── Phase 3: Multicore Batch Benchmark Module ────────────────────────────────
+(function initPerformanceBenchmark() {
+  const btnRun       = document.getElementById("btn-run-benchmark");
+  const btnExport    = document.getElementById("btn-export-bench-csv");
+  const inpCases     = document.getElementById("inp-perf-cases");
+  const inpMesh      = document.getElementById("inp-perf-mesh");
+  const inpSeed      = document.getElementById("inp-perf-seed");
+  const statusEl     = document.getElementById("perf-status");
+
+  const kpiCases     = document.getElementById("kpi-perf-cases");
+  const kpiSubmesh   = document.getElementById("kpi-perf-submesh");
+  const kpiBaseline  = document.getElementById("kpi-perf-baseline");
+  const kpiSpeedup   = document.getElementById("kpi-perf-speedup");
+  const kpiEff       = document.getElementById("kpi-perf-eff");
+  const kpiParity    = document.getElementById("kpi-perf-parity");
+  const kpiDiscrep   = document.getElementById("kpi-perf-discrepancy");
+
+  const tbodyBench   = document.getElementById("tbody-benchmark");
+
+  if (!btnRun) return;
+
+  let speedupChart = null;
+  let latencyChart = null;
+
+  function setStatus(msg, type = "info") {
+    if (!statusEl) return;
+    statusEl.textContent = msg;
+    statusEl.className = `status-bar ${type}`;
+  }
+
+  function initBenchmarkCharts() {
+    if (typeof Chart === "undefined") return;
+
+    const ctxSpeedup = document.getElementById("chart-speedup")?.getContext("2d");
+    if (ctxSpeedup && !speedupChart) {
+      speedupChart = new Chart(ctxSpeedup, {
+        type: "line",
+        data: { labels: [], datasets: [] },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { labels: { color: "#cbd5e1" } }
+          },
+          scales: {
+            x: {
+              title: { display: true, text: "Worker Count (Threads p)", color: "#94a3b8" },
+              ticks: { color: "#94a3b8" },
+              grid: { color: "#334155" }
+            },
+            y: {
+              title: { display: true, text: "Speedup Factor Sp (T1 / Tp)", color: "#94a3b8" },
+              ticks: { color: "#94a3b8" },
+              grid: { color: "#334155" },
+              beginAtZero: true
+            }
+          }
+        }
+      });
+    }
+
+    const ctxLatency = document.getElementById("chart-latency")?.getContext("2d");
+    if (ctxLatency && !latencyChart) {
+      latencyChart = new Chart(ctxLatency, {
+        type: "bar",
+        data: { labels: [], datasets: [] },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { labels: { color: "#cbd5e1" } }
+          },
+          scales: {
+            x: {
+              title: { display: true, text: "Worker Count (Threads)", color: "#94a3b8" },
+              ticks: { color: "#94a3b8" },
+              grid: { color: "#334155" }
+            },
+            y: {
+              title: { display: true, text: "Median Execution Time [ms]", color: "#94a3b8" },
+              ticks: { color: "#94a3b8" },
+              grid: { color: "#334155" },
+              beginAtZero: true
+            }
+          }
+        }
+      });
+    }
+  }
+
+  async function runBenchmark() {
+    const cases = parseInt(inpCases.value, 10) || 200;
+    const mesh  = parseInt(inpMesh.value, 10) || 40;
+    const seed  = parseInt(inpSeed.value, 10) || 42;
+
+    btnRun.disabled = true;
+    setStatus(`Executing warm-up and 5 measured runs for ${cases} cases (Mesh N=${mesh})...`, "info");
+
+    try {
+      const url = `/api/benchmark/run?cases=${cases}&mesh=${mesh}&seed=${seed}`;
+      const res = await fetch(url);
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      const data = await res.json();
+
+      if (!data.runs || data.runs.length === 0) {
+        throw new Error("No benchmark data returned from server.");
+      }
+
+      // Update KPIs
+      kpiCases.textContent = data.case_count;
+      kpiSubmesh.textContent = `Mesh N = ${data.mesh_N} (${data.mesh_N + 1} nodes/case)`;
+
+      const baselineRun = data.runs.find(r => r.threads === 1) || data.runs[0];
+      kpiBaseline.textContent = `${baselineRun.median_ms.toFixed(2)} ms`;
+
+      // Find max speedup
+      let maxSp = 1.0;
+      let maxSpEff = 1.0;
+      data.runs.forEach(r => {
+        if (r.speedup > maxSp) {
+          maxSp = r.speedup;
+          maxSpEff = r.efficiency;
+        }
+      });
+      kpiSpeedup.textContent = `${maxSp.toFixed(2)}×`;
+      kpiEff.textContent = `Parallel Efficiency: ${(maxSpEff * 100).toFixed(1)}%`;
+
+      if (data.parity_passed) {
+        kpiParity.textContent = "100% MATCH";
+        kpiParity.className = "kpi-value text-success";
+        kpiDiscrep.textContent = `Max abs diff: ${data.max_discrepancy_C.toExponential(2)} °C (≤ 10⁻⁸)`;
+      } else {
+        kpiParity.textContent = "PARITY FAILED";
+        kpiParity.className = "kpi-value text-danger";
+        kpiDiscrep.textContent = `Max abs diff: ${data.max_discrepancy_C.toFixed(6)} °C`;
+      }
+
+      // Populate Table
+      tbodyBench.innerHTML = "";
+      data.runs.forEach(r => {
+        const tr = document.createElement("tr");
+        const runsHtml = r.run_times_ms.map(t => `<td>${t.toFixed(2)}</td>`).join("");
+        tr.innerHTML = `
+          <td><strong>${r.threads} Worker${r.threads > 1 ? "s" : ""}</strong></td>
+          <td>${data.case_count}</td>
+          <td>${data.mesh_N}</td>
+          ${runsHtml}
+          <td><strong>${r.median_ms.toFixed(2)}</strong></td>
+          <td class="highlight"><strong>${r.speedup.toFixed(2)}×</strong></td>
+          <td>${(r.efficiency * 100).toFixed(1)}%</td>
+        `;
+        tbodyBench.appendChild(tr);
+      });
+
+      // Update Charts
+      const threadLabels = data.runs.map(r => `${r.threads}T`);
+      const speedupVals  = data.runs.map(r => r.speedup);
+      const idealVals    = data.runs.map(r => r.threads);
+      const latencyVals  = data.runs.map(r => r.median_ms);
+
+      if (speedupChart) {
+        speedupChart.data = {
+          labels: threadLabels,
+          datasets: [
+            {
+              label: "Actual Measured Speedup Sp",
+              data: speedupVals,
+              borderColor: "#38bdf8",
+              backgroundColor: "rgba(56, 189, 248, 0.2)",
+              borderWidth: 2,
+              pointRadius: 5,
+              pointBackgroundColor: "#38bdf8",
+              tension: 0.2
+            },
+            {
+              label: "Ideal Linear Scaling (Sp = p)",
+              data: idealVals,
+              borderColor: "#a855f7",
+              borderDash: [5, 5],
+              borderWidth: 1.5,
+              pointRadius: 3,
+              fill: false
+            }
+          ]
+        };
+        speedupChart.update();
+      }
+
+      if (latencyChart) {
+        latencyChart.data = {
+          labels: threadLabels,
+          datasets: [
+            {
+              label: "Median Execution Time [ms]",
+              data: latencyVals,
+              backgroundColor: ["#38bdf8", "#818cf8", "#c084fc", "#f472b6"],
+              borderColor: "#60a5fa",
+              borderWidth: 1,
+              borderRadius: 4
+            }
+          ]
+        };
+        latencyChart.update();
+      }
+
+      setStatus(`Benchmark completed successfully: ${data.runs.length} configurations evaluated. Parity: ${data.parity_passed ? "PASS" : "FAIL"}.`, "success");
+    } catch (err) {
+      setStatus(`Benchmark failed: ${err.message}`, "error");
+    } finally {
+      btnRun.disabled = false;
+    }
+  }
+
+  btnExport.addEventListener("click", () => {
+    const cases = parseInt(inpCases.value, 10) || 200;
+    const mesh  = parseInt(inpMesh.value, 10) || 40;
+    const seed  = parseInt(inpSeed.value, 10) || 42;
+    window.location.href = `/api/benchmark/export?cases=${cases}&mesh=${mesh}&seed=${seed}`;
+  });
+
+  btnRun.addEventListener("click", runBenchmark);
+
+  initBenchmarkCharts();
+  runBenchmark();
+})();
+

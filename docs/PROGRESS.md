@@ -183,7 +183,54 @@ Result: 42 passed, 0 failed.
 
 ---
 
-## Phase 3 — Multicore batch  (pending)
+## Phase 3 — Multicore Batch Solver (2026-10-31)
+**Status:** ✅ COMPLETE
+
+### What was built
+| Function | Description | Test Status |
+|----------|-------------|-------------|
+| `generate_cases` | Deterministic generation of test cases using `std::mt19937` with physical $k \in [5, 50]$, $q \in [1000, 20000]$ | ✅ PASS |
+| `solve_serial` | Sequential baseline solver using `fem1d::run_for_N` | ✅ PASS |
+| `solve_parallel` | Multithreaded bounded worker pool with lock-free atomic task distribution | ✅ PASS |
+| `compare_results` | Maximum absolute temperature difference validator across all nodes and cases | ✅ PASS (parity $\le 10^{-8}$ °C) |
+| `run_benchmark` | Automated 1 warm-up + 5 measured runs suite computing median time, speedup $S_p$, efficiency $E_p$ | ✅ PASS |
+| `export_benchmark_csv` | CSV serializer writing `results/benchmark_multicore.csv` | ✅ PASS |
+
+### Real Test Output (RunTests.exe)
+```
+=== ThermoBench Test Runner ===
+  [ RUN ] Phase 3 - generate_cases: deterministic output for same seed, varied k, q > 0
+  [ OK  ] Phase 3 - generate_cases: deterministic output for same seed, varied k, q > 0
+  [ RUN ] Phase 3 - generate_cases: zero count or N < 2 throws invalid_argument
+  [ OK  ] Phase 3 - generate_cases: zero count or N < 2 throws invalid_argument
+  [ RUN ] Phase 3 - solve_serial: solves batch accurately, boundaries match T0 and TL
+  [ OK  ] Phase 3 - solve_serial: solves batch accurately, boundaries match T0 and TL
+  [ RUN ] Phase 3 - solve_serial: empty test cases throws invalid_argument
+  [ OK  ] Phase 3 - solve_serial: empty test cases throws invalid_argument
+  [ RUN ] Phase 3 - solve_parallel: numerical parity across 1, 2, 4 threads within 1e-8 C
+  [ OK  ] Phase 3 - solve_parallel: numerical parity across 1, 2, 4 threads within 1e-8 C
+  [ RUN ] Phase 3 - solve_parallel: zero threads or empty list throws invalid_argument
+  [ OK  ] Phase 3 - solve_parallel: zero threads or empty list throws invalid_argument
+  [ RUN ] Phase 3 - compare_results: zero diff for identical, detects perturbations
+  [ OK  ] Phase 3 - compare_results: zero diff for identical, detects perturbations
+  [ RUN ] Phase 3 - benchmark and CSV export: verified warm-up, 5 runs median, speedup, CSV
+  [ OK  ] Phase 3 - benchmark and CSV export: verified warm-up, 5 runs median, speedup, CSV
+  [ RUN ] Phase 3 - generate official benchmark_multicore.csv
+  [ OK  ] Phase 3 - generate official benchmark_multicore.csv
+
+Result: 51 passed, 0 failed.
+```
+
+### Benchmark Scaling Results (results/benchmark_multicore.csv)
+- Cases: 200, Mesh elements per case: $N=40$ (8,200 total nodal thermal solutions per run).
+- 1 Thread (Baseline): Median $5.27$ ms, Speedup $1.00\times$, Efficiency $100\%$
+- 2 Threads: Median $4.60$ ms, Speedup $1.15\times$, Efficiency $57.3\%$
+- 4 Threads: Median $3.42$ ms, Speedup $1.54\times$, Efficiency $38.6\%$
+- Numerical Parity: $0.00000000$ °C max difference ($\le 10^{-8}$ °C).
+
+---
+
 ## Phase 4 — Geometry / CAD  (pending)
 ## Phase 5 — Embedded design + mocks  (pending)
 ## Phase 6 — Packaging and evidence  (pending)
+

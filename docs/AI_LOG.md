@@ -107,3 +107,38 @@ Verified parameter updates and confirmed the analytical chain rule derivation on
   1. In `src/core/backprop.cpp`, `std::max({abs_err_w, abs_err_b, abs_err_v, abs_err_c})` failed compilation with `no matching function for call to max` because `<algorithm>` was omitted. Fix: Added `#include <algorithm>`.
   2. In `tests/test_phase2.cpp`, `std::ifstream ifs(path)` failed compilation with `incomplete type` because `<fstream>` was omitted. Fix: Added `#include <fstream>`.
 
+---
+
+## Phase 3 — 2026-10-31
+
+### My prompt (paraphrased)
+Implement Phase 3: Multicore batch FEA solver. Functions: generate_cases -> solve_serial -> solve_parallel -> compare_results -> run_benchmark -> export_benchmark_csv. Configurable case count, mesh size, varied physical properties with std::mt19937. Multithreaded bounded worker pool with atomic index fetching. Assert parity <= 1e-8 °C against serial. Measure 1 warm-up + 5 measured runs, median time, speedup, efficiency. Expose server API endpoints and interactive UI tab.
+
+### What the AI did
+1. Implemented all 6 functions in `src/core/batch_solver.{hpp,cpp}`:
+   - `generate_cases`: Deterministic case generation with uniform random $k \in [5, 50]$, $q \in [1000, 20000]$, $T_0 \in [50, 150]$, $T_L \in [10, 40]$.
+   - `solve_serial`: Sequential baseline running each case through `thermo::run_for_N`.
+   - `solve_parallel`: Multithreaded bounded worker pool using lock-free `std::atomic<size_t>` index distribution across `std::thread` workers (capped at hardware concurrency).
+   - `compare_results`: All-node temperature difference comparator verifying numerical parity.
+   - `run_benchmark`: Automated benchmark suite running 1 warm-up and 5 measured runs across configured thread counts (1, 2, 4), computing median time, speedup $S_p = T_1 / T_p$, and parallel efficiency $E_p = S_p / p$.
+   - `export_benchmark_csv`: Serializer generating `results/benchmark_multicore.csv`.
+2. Created `tests/test_phase3.cpp` with 9 unit tests covering deterministic generation, boundary verification, numerical parity across threads, invalid input handling, and automated CSV generation.
+3. Added endpoints `/api/benchmark/run` and `/api/benchmark/export` in `src/server/main.cpp`.
+4. Upgraded `ui/index.html` and `ui/js/app.js` with full benchmark controls, KPI cards, Chart.js speedup and latency charts, and 5-run data table.
+5. All 51 unit tests passing in `RunTests.exe`.
+
+### What I changed
+Verified benchmark metrics on Windows 11 and confirmed Amdahl's law scaling behavior.
+
+### How it was validated
+- Build: GCC 16.2.0 + Ninja with `-Wall -Wextra -Wpedantic -Werror` — zero errors, zero warnings.
+- Unit tests: `RunTests.exe` executed — 51/51 tests passed.
+- Numerical parity: Max absolute temperature difference across all nodes between serial and parallel solutions is $0.00000000$ °C (asserted $\le 10^{-8}$ °C).
+- Benchmark export: `results/benchmark_multicore.csv` produced and inspected.
+
+### Mistakes / doubts
+- **Real mistake recorded**:
+  - When calling `thermo::run_for_N` inside `batch_solver.cpp`, the arguments were passed as `run_for_N(tc.N, tc.L, tc.A, tc.k, tc.q, tc.T0, tc.TL)`. However, the function definition expects `run_for_N(double L, double A, double k, double q, double T0, double TL, int N)`. Due to implicit conversion between `double` and `int`, `tc.N` was converted to `L` and `tc.TL` was converted to `N`, which caused `T_fe.size()` to mismatch in unit tests.
+  - **Correction**: Realigned argument order to `(tc.L, tc.A, tc.k, tc.q, tc.T0, tc.TL, tc.N)`.
+
+

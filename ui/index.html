@@ -185,11 +185,102 @@
     <section id="tab-performance" class="tab-panel" role="tabpanel"
              aria-labelledby="btn-performance">
       <div class="panel-header">
-        <h1>Multicore Batch Benchmark</h1>
-        <p class="panel-desc">Run serial vs parallel FEA cases; compare speedup and efficiency across worker counts.</p>
+        <h1>⚡ Multicore Batch Benchmark</h1>
+        <p class="panel-desc">Parallel finite element batch solver benchmark comparing bounded worker pools (1, 2, 4+ threads) against serial baseline with 100% numerical parity validation.</p>
       </div>
-      <div class="status-bar info" id="perf-status">Phase 3 – coming soon.</div>
-      <div class="placeholder-view">Benchmark table and charts will appear here in Phase 3.</div>
+
+      <!-- Benchmark Configuration Card -->
+      <div class="card control-card">
+        <h2 class="card-title">⚙️ Benchmark Configuration</h2>
+        <div class="input-grid">
+          <div class="input-group">
+            <label for="inp-perf-cases">Total Test Cases</label>
+            <input type="number" id="inp-perf-cases" value="200" step="50" min="10" max="2000">
+          </div>
+          <div class="input-group">
+            <label for="inp-perf-mesh">Mesh Elements N (per case)</label>
+            <input type="number" id="inp-perf-mesh" value="40" step="10" min="10" max="160">
+          </div>
+          <div class="input-group">
+            <label for="inp-perf-seed">RNG Seed (std::mt19937)</label>
+            <input type="number" id="inp-perf-seed" value="42" step="1" min="1">
+          </div>
+        </div>
+
+        <div class="btn-group">
+          <button id="btn-run-benchmark" class="btn btn-primary">▶ Run Multicore Benchmark</button>
+          <button id="btn-export-bench-csv" class="btn btn-outline">⬇ Export Benchmark CSV</button>
+        </div>
+
+        <div id="perf-status" class="status-bar info">Ready. Click 'Run Multicore Benchmark' to measure speedup &amp; scaling.</div>
+      </div>
+
+      <!-- KPI Summary Cards -->
+      <div class="kpi-grid">
+        <div class="kpi-card">
+          <div class="kpi-label">Cases Evaluated</div>
+          <div class="kpi-value" id="kpi-perf-cases">200</div>
+          <div class="kpi-sub" id="kpi-perf-submesh">Mesh N = 40 (41 nodes/case)</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Serial Baseline (1 Worker)</div>
+          <div class="kpi-value highlight" id="kpi-perf-baseline">—</div>
+          <div class="kpi-sub">Median of 5 runs</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Max Speedup Achieved</div>
+          <div class="kpi-value" id="kpi-perf-speedup">—</div>
+          <div class="kpi-sub" id="kpi-perf-eff">Efficiency: —</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Numerical Parity vs Serial</div>
+          <div class="kpi-value" id="kpi-perf-parity">—</div>
+          <div class="kpi-sub" id="kpi-perf-discrepancy">Tolerance: &le; 10⁻⁸ °C</div>
+        </div>
+      </div>
+
+      <!-- Benchmark Charts Grid -->
+      <div class="charts-grid">
+        <div class="card chart-card">
+          <h2 class="card-title">🚀 Speedup Scaling vs Ideal Linear Scaling</h2>
+          <div class="chart-container">
+            <canvas id="chart-speedup"></canvas>
+          </div>
+        </div>
+        <div class="card chart-card">
+          <h2 class="card-title">⏱ Median Execution Latency [ms] vs Worker Count</h2>
+          <div class="chart-container">
+            <canvas id="chart-latency"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- Benchmark Results Table -->
+      <div class="card table-card">
+        <h2 class="card-title">📊 Multi-Run Performance Summary (5 Measured Runs)</h2>
+        <div class="table-responsive">
+          <table class="data-table" id="table-benchmark">
+            <thead>
+              <tr>
+                <th>Workers (Threads)</th>
+                <th>Cases</th>
+                <th>Mesh N</th>
+                <th>Run 1 [ms]</th>
+                <th>Run 2 [ms]</th>
+                <th>Run 3 [ms]</th>
+                <th>Run 4 [ms]</th>
+                <th>Run 5 [ms]</th>
+                <th>Median [ms]</th>
+                <th>Speedup Sp</th>
+                <th>Efficiency Ep</th>
+              </tr>
+            </thead>
+            <tbody id="tbody-benchmark">
+              <tr><td colspan="11" class="text-center text-muted">Click "Run Multicore Benchmark" to execute benchmark suite.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
     </section>
 
     <!-- ── HARDWARE ───────────────────────────────────────────────── -->

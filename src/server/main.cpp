@@ -14,6 +14,7 @@
 #include <string>
 #include <filesystem>
 #include "core/fem1d.hpp"
+#include "core/batch_solver.hpp"
 
 namespace fs = std::filesystem;
 
@@ -145,6 +146,86 @@ int main(int argc, char* argv[]) {
             }
             res.set_header("Content-Disposition", "attachment; filename=\"thermal_convergence.csv\"");
             res.set_content(thermo::convergence_to_csv(results), "text/csv");
+        } catch (const std::exception& e) {
+            res.status = 400;
+            res.set_content(std::string("Error: ") + e.what(), "text/plain");
+        }
+    });
+
+    // ── /api/benchmark/run ───────────────────────────────────────────────
+    svr.Get("/api/benchmark/run", [](const httplib::Request& req, httplib::Response& res) {
+        try {
+            thermobench::batch::BenchmarkConfig cfg;
+            cfg.case_count = req.has_param("cases") ? std::stoul(req.get_param_value("cases")) : 200;
+            cfg.mesh_N = req.has_param("mesh") ? std::stoi(req.get_param_value("mesh")) : 40;
+            cfg.seed = req.has_param("seed") ? static_cast<unsigned int>(std::stoul(req.get_param_value("seed"))) : 42;
+            cfg.warmup_runs = 1;
+            cfg.measured_runs = 5;
+
+            unsigned int hw = std::thread::hardware_concurrency();
+            if (hw == 0) hw = 4;
+            std::vector<unsigned int> threads = {1};
+            if (hw >= 2) threads.push_back(2);
+            if (hw >= 4) threads.push_back(4);
+            if (hw >= 8 && std::find(threads.begin(), threads.end(), 8) == threads.end()) threads.push_back(8);
+            if (std::find(threads.begin(), threads.end(), hw) == threads.end()) threads.push_back(hw);
+            std::sort(threads.begin(), threads.end());
+            threads.erase(std::unique(threads.begin(), threads.end()), threads.end());
+
+            cfg.thread_counts = threads;
+
+            auto summary = thermobench::batch::run_benchmark(cfg);
+
+            std::ostringstream json;
+            json << "{\"case_count\":" << summary.case_count
+                 << ",\"mesh_N\":" << summary.mesh_N
+                 << ",\"parity_passed\":" << (summary.parity_passed ? "true" : "false")
+                 << ",\"max_discrepancy_C\":" << summary.max_discrepancy_C
+                 << ",\"runs\":[";
+
+            for (size_t i = 0; i < summary.runs.size(); ++i) {
+                const auto& r = summary.runs[i];
+                if (i > 0) json << ",";
+                json << "{\"threads\":" << r.threads
+                     << ",\"median_ms\":" << r.median_time_ms
+                     << ",\"speedup\":" << r.speedup
+                     << ",\"efficiency\":" << r.efficiency
+                     << ",\"run_times_ms\":[";
+                for (size_t j = 0; j < r.run_times_ms.size(); ++j) {
+                    if (j > 0) json << ",";
+                    json << r.run_times_ms[j];
+                }
+                json << "]}";
+            }
+            json << "]}";
+
+            res.set_content(json.str(), "application/json");
+        } catch (const std::exception& e) {
+            res.status = 400;
+            res.set_content("{\"error\":\"" + std::string(e.what()) + "\"}", "application/json");
+        }
+    });
+
+    // ── /api/benchmark/export ────────────────────────────────────────────
+    svr.Get("/api/benchmark/export", [](const httplib::Request& req, httplib::Response& res) {
+        try {
+            thermobench::batch::BenchmarkConfig cfg;
+            cfg.case_count = req.has_param("cases") ? std::stoul(req.get_param_value("cases")) : 200;
+            cfg.mesh_N = req.has_param("mesh") ? std::stoi(req.get_param_value("mesh")) : 40;
+            cfg.seed = req.has_param("seed") ? static_cast<unsigned int>(std::stoul(req.get_param_value("seed"))) : 42;
+            cfg.warmup_runs = 1;
+            cfg.measured_runs = 5;
+
+            unsigned int hw = std::thread::hardware_concurrency();
+            if (hw == 0) hw = 4;
+            std::vector<unsigned int> threads = {1};
+            if (hw >= 2) threads.push_back(2);
+            if (hw >= 4) threads.push_back(4);
+            cfg.thread_counts = threads;
+
+            auto summary = thermobench::batch::run_benchmark(cfg);
+            res.set_header("Content-Disposition", "attachment; filename=\"benchmark_multicore.csv\"");
+            res.set_content(thermobench::batch::to_csv(summary), "text/csv");
         } catch (const std::exception& e) {
             res.status = 400;
             res.set_content(std::string("Error: ") + e.what(), "text/plain");
