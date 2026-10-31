@@ -25,4 +25,16 @@ struct ElementMatrices {
 // Throws std::invalid_argument if h <= 0, k <= 0, A <= 0, or any value is non-finite (NaN/Inf).
 ElementMatrices assemble_element(double k, double A, double h, double q);
 
+struct GlobalSystem {
+    int num_nodes = 0;
+    std::vector<std::vector<double>> K; // (num_nodes x num_nodes) global conductance matrix
+    std::vector<double> F;              // (num_nodes) global thermal load vector
+};
+
+// Assembles global stiffness matrix K and load vector F for N uniform elements on [0, L].
+// Node 0 is at x = 0; Node N is at x = L.
+// Element e connects node e and node e+1, with h = L / N.
+// Throws std::invalid_argument if N <= 0, L <= 0, A <= 0, k <= 0, or any input is non-finite.
+GlobalSystem assemble_global(double L, double A, double k, double q, int N);
+
 } // namespace thermo

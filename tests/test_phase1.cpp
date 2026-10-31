@@ -55,3 +55,66 @@ TEST("Phase 1 - assemble_element: NaN / Inf inputs throw invalid_argument") {
     ASSERT_THROWS(thermo::assemble_element(10.0, 1e-4, 0.1, nan_val));
     ASSERT_THROWS(thermo::assemble_element(inf_val, 1e-4, 0.1, 10000.0));
 }
+
+// ── Function 2: assemble_global ──────────────────────────────────────────────
+
+TEST("Phase 1 - assemble_global: dimensions, symmetry, tridiagonal and row sums") {
+    const double L = 1.0;
+    const double A = 1e-4;
+    const double k = 10.0;
+    const double q = 10000.0;
+    const int N = 10;
+
+    thermo::GlobalSystem sys = thermo::assemble_global(L, A, k, q, N);
+
+    ASSERT(sys.num_nodes == N + 1);
+    ASSERT(static_cast<int>(sys.K.size()) == N + 1);
+    ASSERT(static_cast<int>(sys.F.size()) == N + 1);
+
+    // Physical conservation 1: Total load sum = q * A * L
+    double total_F = 0.0;
+    for (int i = 0; i <= N; ++i) {
+        total_F += sys.F[i];
+    }
+    ASSERT_NEAR(total_F, q * A * L, 1e-12);
+
+    // Boundary load vs interior load:
+    // Node 0 and Node N each receive half-element load: q*A*h / 2
+    const double h = L / N;
+    ASSERT_NEAR(sys.F[0], (q * A * h) / 2.0, 1e-12);
+    ASSERT_NEAR(sys.F[N], (q * A * h) / 2.0, 1e-12);
+    // Interior nodes receive 2 * (q*A*h / 2) = q*A*h
+    for (int i = 1; i < N; ++i) {
+        ASSERT_NEAR(sys.F[i], q * A * h, 1e-12);
+    }
+
+    // Physical conservation 2: Unconstrained stiffness has zero row sums (rigid body mode)
+    for (int i = 0; i <= N; ++i) {
+        double row_sum = 0.0;
+        for (int j = 0; j <= N; ++j) {
+            // Symmetry check
+            ASSERT_NEAR(sys.K[i][j], sys.K[j][i], 1e-12);
+
+            // Tridiagonal check: zero if |i - j| > 1
+            if (std::abs(i - j) > 1) {
+                ASSERT_NEAR(sys.K[i][j], 0.0, 1e-12);
+            }
+            row_sum += sys.K[i][j];
+        }
+        ASSERT_NEAR(row_sum, 0.0, 1e-12);
+    }
+}
+
+TEST("Phase 1 - assemble_global: invalid N and negative params throw invalid_argument") {
+    // N = 0
+    ASSERT_THROWS(thermo::assemble_global(1.0, 1e-4, 10.0, 10000.0, 0));
+    // N < 0
+    ASSERT_THROWS(thermo::assemble_global(1.0, 1e-4, 10.0, 10000.0, -5));
+    // Negative L
+    ASSERT_THROWS(thermo::assemble_global(-1.0, 1e-4, 10.0, 10000.0, 10));
+    // Negative k
+    ASSERT_THROWS(thermo::assemble_global(1.0, 1e-4, -10.0, 10000.0, 10));
+    // NaN input
+    const double nan_val = std::numeric_limits<double>::quiet_NaN();
+    ASSERT_THROWS(thermo::assemble_global(nan_val, 1e-4, 10.0, 10000.0, 10));
+}
