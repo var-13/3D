@@ -27,8 +27,33 @@ ForwardResult forward(double x, double y, const NetworkParams& p) {
 }
 
 Gradients gradients(double x, double y, const NetworkParams& p) {
-    (void)x; (void)y; (void)p;
-    return {}; // Stub for func 2
+    ForwardResult fwd = forward(x, y, p);
+
+    const double dJ_dyhat = fwd.y_hat - y;
+
+    Gradients g;
+    // dJ/dc = dJ/dy_hat * dy_hat/dc = (y_hat - y) * 1
+    g.dc = dJ_dyhat;
+
+    // dJ/dv = dJ/dy_hat * dy_hat/dv = (y_hat - y) * h
+    g.dv = dJ_dyhat * fwd.h;
+
+    // dJ/dh = dJ/dy_hat * dy_hat/dh = (y_hat - y) * v
+    const double dJ_dh = dJ_dyhat * p.v;
+
+    // dh/dz = 1 - tanh(z)^2 = 1 - h^2
+    const double dh_dz = 1.0 - fwd.h * fwd.h;
+
+    // delta_z = dJ/dz = dJ/dh * dh/dz
+    const double delta_z = dJ_dh * dh_dz;
+
+    // dJ/dw = delta_z * dz/dw = delta_z * x
+    g.dw = delta_z * x;
+
+    // dJ/db = delta_z * dz/db = delta_z * 1
+    g.db = delta_z;
+
+    return g;
 }
 
 double finite_diff_check(double x, double y, const NetworkParams& p, double eps) {
