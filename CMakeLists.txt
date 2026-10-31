@@ -34,15 +34,18 @@ add_library(thermo_core STATIC
 target_include_directories(thermo_core PUBLIC src)
 
 # ── HTTP server ─────────────────────────────────────────────────────────────
+# Disable SSL in httplib – we only need plain HTTP on localhost.
+# httplib uses #ifdef CPPHTTPLIB_OPENSSL_SUPPORT so we must NOT define it at all.
+# (Setting =0 would still satisfy #ifdef and pull in SSL symbols.)
+# No action needed: undefined = SSL off.
 add_executable(ThermoBenchServer
     src/server/main.cpp
 )
-# Disable SSL in httplib – we only need plain HTTP on localhost.
-target_compile_definitions(ThermoBenchServer PRIVATE CPPHTTPLIB_OPENSSL_SUPPORT=0)
 target_link_libraries(ThermoBenchServer PRIVATE thermo_core)
 if(WIN32)
     target_link_libraries(ThermoBenchServer PRIVATE ws2_32)
 endif()
+
 
 # ── Launcher ────────────────────────────────────────────────────────────────
 add_executable(Launch
