@@ -72,3 +72,38 @@ Verified all test runs and confirmed analytical error formulas.
 ### Mistakes / doubts
 - **Real mistake recorded**: When adding `tests/test_phase1.cpp`, the linker failed with `multiple definition of test_inst_0` across translation units. The `TEST_IMPL` macro instantiated the registration struct instance at file scope with default external linkage. When a second `.cpp` file also expanded `TEST`, the symbols collided.
   - **Correction**: Wrapped `TEST_IMPL` struct and instance inside an anonymous namespace `namespace { ... }` and marked `run()` as `inline`, giving every test registration internal translation unit linkage.
+
+---
+
+## Phase 2 — 2026-10-31
+
+### My prompt (paraphrased)
+Implement Phase 2: Backpropagation from scratch in C++17 on x=1.0, y=2.0, z=w*x+b, h=tanh(z), y_hat=v*h+c, J=0.5*(y_hat-y)^2. Initial values: w=0.5, b=0, v=1, c=0, eta=0.1. Functions: forward -> gradients -> finite_diff_check -> update_step -> train_steps -> export_loss_csv. Verify initial loss J ≈ 1.1825, initial gradients dc ≈ -1.5379, dv ≈ -0.7107, dw = db ≈ -1.2095, finite difference check <= 1e-5 (observed < 1e-9), step 1 weights w1 ≈ 0.6209, b1 ≈ 0.1209, v1 ≈ 1.0711, c1 ≈ 0.1538, 100 steps convergence, SVG and CSV outputs, and unit tests.
+
+### What the AI did
+1. Implemented all 6 functions in `src/core/backprop.{hpp,cpp}`:
+   - `forward`: Forward pass computing activation $z = wx+b$, hidden state $h = \tanh(z)$, prediction $\hat{y} = vh+c$, and squared error loss $J = \frac{1}{2}(\hat{y}-y)^2$.
+   - `gradients`: Exact analytical backpropagation gradients using single-variable calculus chain rule without autodiff: $\frac{\partial J}{\partial c} = (\hat{y}-y)$, $\frac{\partial J}{\partial v} = (\hat{y}-y)h$, $\frac{\partial J}{\partial w} = (\hat{y}-y)v(1-h^2)x$, $\frac{\partial J}{\partial b} = (\hat{y}-y)v(1-h^2)$.
+   - `finite_diff_check`: Numerical gradient verification via symmetric central differences $\frac{J(\theta + \epsilon) - J(\theta - \epsilon)}{2\epsilon}$ with $\epsilon = 10^{-6}$. Max discrepancy $< 10^{-9}$ (asserted $\le 10^{-5}$).
+   - `update_step`: Synchronous parameter update $\theta \leftarrow \theta - \eta \nabla_\theta J$.
+   - `train_steps`: 100-step gradient descent optimization logging trajectory, loss, and gradients.
+   - `export_loss_csv`: Serializer writing CSV to disk.
+2. Built `tests/test_phase2.cpp` with 14 unit tests covering mathematical accuracy, parameter invariants, edge cases (zero error, non-positive learning rate, NaN inputs, invalid file paths).
+3. Generated `results/backprop_loss.csv` (101 epochs) and `results/backprop_loss.svg` (loss descent chart).
+4. Ran `RunTests.exe` passing 42/42 tests.
+
+### What I changed
+Verified parameter updates and confirmed the analytical chain rule derivation on paper.
+
+### How it was validated
+- Build: GCC 16.2.0 + Ninja with `-Wall -Wextra -Wpedantic -Werror` — zero errors, zero warnings.
+- Unit tests: `RunTests.exe` executed — 42/42 tests passed (6 Phase 0 + 22 Phase 1 + 14 Phase 2).
+- Finite difference gradient check: Central difference error $< 10^{-9}$ on all 4 parameters.
+- Monotonic loss reduction verified: $1.1825 \to 0.0000$ over 100 steps.
+- Official `results/backprop_loss.csv` and `results/backprop_loss.svg` generated and inspected.
+
+### Mistakes / doubts
+- **Real mistakes recorded**:
+  1. In `src/core/backprop.cpp`, `std::max({abs_err_w, abs_err_b, abs_err_v, abs_err_c})` failed compilation with `no matching function for call to max` because `<algorithm>` was omitted. Fix: Added `#include <algorithm>`.
+  2. In `tests/test_phase2.cpp`, `std::ifstream ifs(path)` failed compilation with `incomplete type` because `<fstream>` was omitted. Fix: Added `#include <fstream>`.
+

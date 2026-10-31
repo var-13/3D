@@ -132,7 +132,57 @@ Result: 28 passed, 0 failed.
 
 ---
 
-## Phase 2 — Backpropagation  (pending)
+## Phase 2 — Backpropagation  (2026-10-31)
+**Status:** ✅ COMPLETE
+
+### What was built
+| Function | Description | Test Status |
+|----------|-------------|-------------|
+| `forward` | Forward inference: z = w*x + b, h = tanh(z), y_hat = v*h + c, loss = 0.5*(y_hat - y)^2 | ✅ PASS (h~0.4621, y_hat~0.4621, J~1.1825) |
+| `gradients` | Analytical chain rule: dc, dv, dw, db without autodiff | ✅ PASS (dc~-1.5379, dv~-0.7107, dw=db~-1.2095) |
+| `finite_diff_check` | Central finite difference check with eps = 1e-6 | ✅ PASS (max abs error <= 1e-5, verified < 1e-9) |
+| `update_step` | Simultaneous parameter update: theta - lr * grad | ✅ PASS (w~0.6209, b~0.1209, v~1.0711, c~0.1538) |
+| `train_steps` | 100-step gradient descent loop with convergence tracking | ✅ PASS (monotonic descent, final loss < 0.05) |
+| `export_loss_csv` | Serializes training history to CSV and writes results/backprop_loss.csv | ✅ PASS (102 lines, header + 101 records verified) |
+
+### Real Test Output (RunTests.exe)
+```
+=== ThermoBench Test Runner ===
+  [ RUN ] Phase 2 - forward: verifies initial state against analytical values
+  [ OK  ] Phase 2 - forward: verifies initial state against analytical values
+  [ RUN ] Phase 2 - forward: non-finite inputs throw invalid_argument
+  [ OK  ] Phase 2 - forward: non-finite inputs throw invalid_argument
+  [ RUN ] Phase 2 - gradients: analytical chain rule matches brief values
+  [ OK  ] Phase 2 - gradients: analytical chain rule matches brief values
+  [ RUN ] Phase 2 - gradients: zero error produces zero gradients
+  [ OK  ] Phase 2 - gradients: zero error produces zero gradients
+  [ RUN ] Phase 2 - gradients: non-finite inputs throw invalid_argument
+  [ OK  ] Phase 2 - gradients: non-finite inputs throw invalid_argument
+  [ RUN ] Phase 2 - finite_diff_check: central difference error <= 1e-5 for all four parameters
+  [ OK  ] Phase 2 - finite_diff_check: central difference error <= 1e-5 for all four parameters
+  [ RUN ] Phase 2 - finite_diff_check: holds across arbitrary non-zero parameters
+  [ OK  ] Phase 2 - finite_diff_check: holds across arbitrary non-zero parameters
+  [ RUN ] Phase 2 - finite_diff_check: non-positive eps throws invalid_argument
+  [ OK  ] Phase 2 - finite_diff_check: non-positive eps throws invalid_argument
+  [ RUN ] Phase 2 - update_step: simultaneous update matches brief values exactly
+  [ OK  ] Phase 2 - update_step: simultaneous update matches brief values exactly
+  [ RUN ] Phase 2 - update_step: non-positive or non-finite lr throws invalid_argument
+  [ OK  ] Phase 2 - update_step: non-positive or non-finite lr throws invalid_argument
+  [ RUN ] Phase 2 - train_steps: 100 steps of gradient descent convergence
+  [ OK  ] Phase 2 - train_steps: 100 steps of gradient descent convergence
+  [ RUN ] Phase 2 - train_steps: invalid steps or lr throws invalid_argument
+  [ OK  ] Phase 2 - train_steps: invalid steps or lr throws invalid_argument
+  [ RUN ] Phase 2 - export_loss_csv: serializes and writes official results/backprop_loss.csv
+  [ OK  ] Phase 2 - export_loss_csv: serializes and writes official results/backprop_loss.csv
+  [ RUN ] Phase 2 - export_loss_csv: invalid arguments throw invalid_argument
+  [ OK  ] Phase 2 - export_loss_csv: invalid arguments throw invalid_argument
+  (All 28 Phase 1 + Phase 0 tests also run and pass)
+
+Result: 42 passed, 0 failed.
+```
+
+---
+
 ## Phase 3 — Multicore batch  (pending)
 ## Phase 4 — Geometry / CAD  (pending)
 ## Phase 5 — Embedded design + mocks  (pending)
