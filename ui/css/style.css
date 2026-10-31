@@ -1,0 +1,202 @@
+/* ui/css/style.css
+   ThermoBench – dark-orange premium theme
+   Google Font: Inter (loaded locally in Phase 6; fallback: system-ui)
+*/
+
+/* ── Reset & Box Model ──────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+/* ── Design Tokens ──────────────────────────────────────────────────────── */
+:root {
+  --bg-base:      #0d0f14;
+  --bg-surface:   #151820;
+  --bg-raised:    #1c2030;
+  --bg-hover:     #232840;
+
+  --accent:       #f97316;   /* orange-500 */
+  --accent-dim:   #c2540a;
+  --accent-glow:  rgba(249,115,22,.25);
+
+  --text-primary: #f0f2f8;
+  --text-muted:   #8b93a8;
+  --text-dim:     #50586e;
+
+  --border:       #2a3048;
+  --border-focus: #f97316;
+
+  --info-bg:    rgba(59,130,246,.12);
+  --info-text:  #93c5fd;
+  --warn-bg:    rgba(234,179,8,.12);
+  --warn-text:  #fde047;
+  --error-bg:   rgba(239,68,68,.12);
+  --error-text: #fca5a5;
+  --ok-bg:      rgba(34,197,94,.12);
+  --ok-text:    #86efac;
+
+  --radius:     10px;
+  --radius-lg:  16px;
+  --shadow:     0 4px 24px rgba(0,0,0,.5);
+  --transition: .18s ease;
+
+  --font: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+/* ── Base ───────────────────────────────────────────────────────────────── */
+html { font-size: 16px; scroll-behavior: smooth; }
+body {
+  font-family: var(--font);
+  background: var(--bg-base);
+  color: var(--text-primary);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Header ─────────────────────────────────────────────────────────────── */
+.app-header {
+  background: linear-gradient(135deg, #111420 0%, #1a1f35 100%);
+  border-bottom: 1px solid var(--border);
+  padding: 1.25rem 2rem;
+  box-shadow: var(--shadow);
+}
+.header-inner { max-width: 1200px; margin: 0 auto; }
+
+.logo { display: flex; align-items: center; gap: .6rem; }
+.logo-icon { font-size: 1.75rem; }
+.logo-text {
+  font-size: 1.5rem;
+  font-weight: 700;
+  background: linear-gradient(90deg, #f97316, #fb923c);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.logo-ver {
+  font-size: .7rem;
+  font-weight: 600;
+  letter-spacing: .06em;
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  padding: .15rem .5rem;
+  border-radius: 99px;
+}
+.logo-sub {
+  font-size: .78rem;
+  color: var(--text-dim);
+  margin-top: .25rem;
+  letter-spacing: .04em;
+}
+
+/* ── Tab Bar ─────────────────────────────────────────────────────────────── */
+.tab-bar {
+  display: flex;
+  background: var(--bg-surface);
+  border-bottom: 1px solid var(--border);
+  padding: 0 2rem;
+  gap: .25rem;
+  overflow-x: auto;
+}
+.tab-btn {
+  background: transparent;
+  border: none;
+  border-bottom: 3px solid transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-family: var(--font);
+  font-size: .9rem;
+  font-weight: 500;
+  padding: .9rem 1.25rem;
+  display: flex;
+  align-items: center;
+  gap: .4rem;
+  white-space: nowrap;
+  transition: color var(--transition), border-color var(--transition),
+              background var(--transition);
+}
+.tab-btn:hover {
+  color: var(--text-primary);
+  background: var(--bg-hover);
+}
+.tab-btn.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+  background: linear-gradient(180deg, transparent 60%, var(--accent-glow) 100%);
+}
+.tab-icon { font-size: 1rem; }
+
+/* ── Tab Content ─────────────────────────────────────────────────────────── */
+.tab-content { flex: 1; padding: 2rem; max-width: 1200px; margin: 0 auto; width: 100%; }
+
+.tab-panel { display: none; animation: fadein .2s ease; }
+.tab-panel.active { display: block; }
+
+@keyframes fadein { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+/* ── Panel Header ────────────────────────────────────────────────────────── */
+.panel-header { margin-bottom: 1.5rem; }
+.panel-header h1 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: .4rem;
+}
+.panel-desc { font-size: .88rem; color: var(--text-muted); line-height: 1.6; }
+
+/* ── Status Bar ──────────────────────────────────────────────────────────── */
+.status-bar {
+  border-radius: var(--radius);
+  padding: .65rem 1rem;
+  font-size: .85rem;
+  font-weight: 500;
+  margin-bottom: 1.25rem;
+  border-left: 3px solid;
+}
+.status-bar.info  { background: var(--info-bg);  color: var(--info-text);  border-color: #3b82f6; }
+.status-bar.warn  { background: var(--warn-bg);  color: var(--warn-text);  border-color: #eab308; }
+.status-bar.error { background: var(--error-bg); color: var(--error-text); border-color: #ef4444; }
+.status-bar.ok    { background: var(--ok-bg);    color: var(--ok-text);    border-color: #22c55e; }
+
+/* ── Placeholder Viewport ────────────────────────────────────────────────── */
+.placeholder-view {
+  background: var(--bg-raised);
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-lg);
+  color: var(--text-dim);
+  font-size: .9rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 320px;
+  letter-spacing: .03em;
+}
+
+/* ── Badges ──────────────────────────────────────────────────────────────── */
+.badge-sim {
+  font-size: .65rem;
+  font-weight: 700;
+  letter-spacing: .1em;
+  background: var(--warn-bg);
+  color: var(--warn-text);
+  border: 1px solid #eab30840;
+  padding: .15rem .5rem;
+  border-radius: 99px;
+  vertical-align: middle;
+  margin-left: .5rem;
+}
+
+/* ── Footer ──────────────────────────────────────────────────────────────── */
+.app-footer {
+  text-align: center;
+  font-size: .72rem;
+  color: var(--text-dim);
+  border-top: 1px solid var(--border);
+  padding: .9rem;
+  background: var(--bg-surface);
+}
+
+/* ── Scrollbar (WebKit) ──────────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--bg-base); }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--accent-dim); }

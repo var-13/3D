@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="ThermoBench – Windows engineering workbench for thermal FEA, backpropagation, batch benchmarking and hardware simulation." />
+  <title>ThermoBench</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+  <!-- ═══════════════════════════════════════════════════ HEADER -->
+  <header class="app-header">
+    <div class="header-inner">
+      <div class="logo">
+        <span class="logo-icon">🌡</span>
+        <span class="logo-text">ThermoBench</span>
+        <span class="logo-ver" id="version-badge">v0.1.0</span>
+      </div>
+      <p class="logo-sub">Engineering Workbench · Windows 11 x64</p>
+    </div>
+  </header>
+
+  <!-- ═══════════════════════════════════════════════════ TAB BAR -->
+  <nav class="tab-bar" role="tablist" aria-label="Main sections">
+    <button class="tab-btn active" role="tab" aria-selected="true"
+            aria-controls="tab-geometry"     id="btn-geometry"     data-tab="geometry">
+      <span class="tab-icon">📐</span> Geometry
+    </button>
+    <button class="tab-btn" role="tab" aria-selected="false"
+            aria-controls="tab-thermal"      id="btn-thermal"      data-tab="thermal">
+      <span class="tab-icon">🔥</span> Thermal Analysis
+    </button>
+    <button class="tab-btn" role="tab" aria-selected="false"
+            aria-controls="tab-performance"  id="btn-performance"  data-tab="performance">
+      <span class="tab-icon">⚡</span> Performance
+    </button>
+    <button class="tab-btn" role="tab" aria-selected="false"
+            aria-controls="tab-hardware"     id="btn-hardware"     data-tab="hardware">
+      <span class="tab-icon">🖥</span> Hardware
+    </button>
+  </nav>
+
+  <!-- ═══════════════════════════════════════════════════ TAB PANELS -->
+  <main class="tab-content">
+
+    <!-- ── GEOMETRY ──────────────────────────────────────────────── -->
+    <section id="tab-geometry" class="tab-panel active" role="tabpanel"
+             aria-labelledby="btn-geometry">
+      <div class="panel-header">
+        <h1>Geometry / CAD Viewer</h1>
+        <p class="panel-desc">Load an ASCII STL file or a node CSV to inspect 3-D geometry and temperature data.</p>
+      </div>
+      <div class="status-bar info" id="geo-status">Phase 4 – coming soon.</div>
+      <div class="placeholder-view">3-D viewport (Three.js) will appear here in Phase 4.</div>
+    </section>
+
+    <!-- ── THERMAL ANALYSIS ──────────────────────────────────────── -->
+    <section id="tab-thermal" class="tab-panel" role="tabpanel"
+             aria-labelledby="btn-thermal">
+      <div class="panel-header">
+        <h1>Thermal FEA — 1-D Heat Conduction</h1>
+        <p class="panel-desc">
+          Solves −d/dx(kA dT/dx) = qA on a 1 m rod with Dirichlet BCs.
+          Uses 2-node linear finite elements.
+        </p>
+      </div>
+      <div class="status-bar info" id="fem-status">Phase 1 – coming soon.</div>
+      <div class="placeholder-view">Temperature plot and convergence table will appear here in Phase 1.</div>
+    </section>
+
+    <!-- ── PERFORMANCE ───────────────────────────────────────────── -->
+    <section id="tab-performance" class="tab-panel" role="tabpanel"
+             aria-labelledby="btn-performance">
+      <div class="panel-header">
+        <h1>Multicore Batch Benchmark</h1>
+        <p class="panel-desc">Run serial vs parallel FEA cases; compare speedup and efficiency across worker counts.</p>
+      </div>
+      <div class="status-bar info" id="perf-status">Phase 3 – coming soon.</div>
+      <div class="placeholder-view">Benchmark table and charts will appear here in Phase 3.</div>
+    </section>
+
+    <!-- ── HARDWARE ───────────────────────────────────────────────── -->
+    <section id="tab-hardware" class="tab-panel" role="tabpanel"
+             aria-labelledby="btn-hardware">
+      <div class="panel-header">
+        <h1>Hardware Monitor <span class="badge-sim">SIMULATED</span></h1>
+        <p class="panel-desc">Mock adapters for MCU, FPGA and JTAG. All devices are simulated – no real hardware required.</p>
+      </div>
+      <div class="status-bar info" id="hw-status">Phase 5 – coming soon.</div>
+      <div class="placeholder-view">Device panel and telemetry will appear here in Phase 5.</div>
+    </section>
+
+  </main>
+
+  <!-- ═══════════════════════════════════════════════════ FOOTER -->
+  <footer class="app-footer">
+    ThermoBench · internship project · synthetic/open data only · no credentials stored
+  </footer>
+
+  <script src="js/app.js"></script>
+</body>
+</html>
