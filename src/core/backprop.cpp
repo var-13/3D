@@ -118,8 +118,29 @@ NetworkParams update_step(const NetworkParams& p, const Gradients& g, double lr)
 }
 
 std::vector<StepRecord> train_steps(double x, double y, NetworkParams p, double lr, int num_steps) {
-    (void)x; (void)y; (void)p; (void)lr; (void)num_steps;
-    return {}; // Stub for func 5
+    if (num_steps <= 0) {
+        throw std::invalid_argument("train_steps: Number of steps must be positive (> 0).");
+    }
+    if (!std::isfinite(lr) || lr <= 0.0) {
+        throw std::invalid_argument("train_steps: Learning rate must be positive and finite.");
+    }
+
+    std::vector<StepRecord> history;
+    history.reserve(num_steps + 1);
+
+    // Initial step 0
+    ForwardResult fwd = forward(x, y, p);
+    Gradients g = gradients(x, y, p);
+    history.push_back({0, fwd.loss, fwd.y_hat, p, g});
+
+    for (int step = 1; step <= num_steps; ++step) {
+        p = update_step(p, g, lr);
+        fwd = forward(x, y, p);
+        g = gradients(x, y, p);
+        history.push_back({step, fwd.loss, fwd.y_hat, p, g});
+    }
+
+    return history;
 }
 
 std::string loss_to_csv(const std::vector<StepRecord>& history) {

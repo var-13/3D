@@ -181,3 +181,48 @@ TEST("Phase 2 - update_step: non-positive or non-finite lr throws invalid_argume
     ASSERT_THROWS(thermo::update_step(p, g, 0.0));
     ASSERT_THROWS(thermo::update_step(p, g, -0.1));
 }
+
+// ── Function 5: train_steps ──────────────────────────────────────────────────
+
+TEST("Phase 2 - train_steps: 100 steps of gradient descent convergence") {
+    const double x = 1.0;
+    const double y = 2.0;
+    thermo::NetworkParams p0;
+    p0.w = 0.5;
+    p0.b = 0.0;
+    p0.v = 1.0;
+    p0.c = 0.0;
+
+    const double lr = 0.1;
+    const int num_steps = 100;
+
+    std::vector<thermo::StepRecord> history = thermo::train_steps(x, y, p0, lr, num_steps);
+
+    ASSERT(history.size() == static_cast<size_t>(num_steps + 1));
+    ASSERT(history[0].step == 0);
+    ASSERT(history[100].step == 100);
+
+    // Initial loss
+    ASSERT_NEAR(history[0].loss, 1.1825, 1e-3);
+
+    // Step 1 matches brief
+    ASSERT_NEAR(history[1].params.w, 0.6209, 1e-3);
+    ASSERT_NEAR(history[1].params.b, 0.1209, 1e-3);
+    ASSERT_NEAR(history[1].params.v, 1.0711, 1e-3);
+    ASSERT_NEAR(history[1].params.c, 0.1538, 1e-3);
+
+    // Loss strictly decreases over training
+    ASSERT(history[100].loss < history[50].loss);
+    ASSERT(history[50].loss < history[0].loss);
+
+    // Final loss is small (network converges toward target 2.0)
+    ASSERT(history[100].loss < 0.05);
+    ASSERT_NEAR(history[100].y_hat, 2.0, 0.35);
+}
+
+TEST("Phase 2 - train_steps: invalid steps or lr throws invalid_argument") {
+    thermo::NetworkParams p;
+    ASSERT_THROWS(thermo::train_steps(1.0, 2.0, p, 0.1, 0));
+    ASSERT_THROWS(thermo::train_steps(1.0, 2.0, p, 0.1, -10));
+    ASSERT_THROWS(thermo::train_steps(1.0, 2.0, p, -0.1, 100));
+}
