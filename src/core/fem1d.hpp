@@ -110,4 +110,20 @@ struct SimulationResult {
 // Throws std::invalid_argument if N <= 0, L <= 0, A <= 0, k <= 0, or any input is non-finite.
 SimulationResult run_for_N(double L, double A, double k, double q, double T0, double TL, int N);
 
+// Serializes a simulation result to CSV string:
+// Header: x_m,T_fe_C,T_exact_C,error_C
+std::string to_csv(const SimulationResult& res);
+
+// Writes simulation result to a CSV file.
+// Throws std::invalid_argument if filepath is empty, std::runtime_error if file cannot be opened.
+void export_csv(const SimulationResult& res, const std::string& filepath);
+
+// Serializes convergence data across multiple meshes to CSV string:
+// Header: N,h_m,max_nodal_error_C,max_midpoint_error_C,observed_order
+std::string convergence_to_csv(const std::vector<SimulationResult>& results);
+
+// Writes convergence data to a CSV file.
+// Throws std::invalid_argument if filepath is empty, std::runtime_error if file cannot be opened.
+void export_convergence_csv(const std::vector<SimulationResult>& results, const std::string& filepath);
+
 } // namespace thermo

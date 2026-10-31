@@ -5,6 +5,7 @@
 #include "core/fem1d.hpp"
 #include <cmath>
 #include <limits>
+#include <fstream>
 
 // ── Function 1: assemble_element ─────────────────────────────────────────────
 
@@ -382,4 +383,74 @@ TEST("Phase 1 - run_for_N: invalid parameters throw invalid_argument") {
 
     // Negative area
     ASSERT_THROWS(thermo::run_for_N(1.0, -1e-4, 10.0, 10000.0, 100.0, 20.0, 10));
+}
+
+// ── Function 8: export_csv ───────────────────────────────────────────────────
+
+TEST("Phase 1 - export_csv: to_csv produces valid schema and expected rows") {
+    thermo::SimulationResult res = thermo::run_for_N(1.0, 1e-4, 10.0, 10000.0, 100.0, 20.0, 10);
+    std::string csv = thermo::to_csv(res);
+
+    ASSERT(!csv.empty());
+    // Check header
+    ASSERT(csv.find("x_m,T_fe_C,T_exact_C,error_C") == 0);
+
+    // Count lines (header + 11 data lines = 12 lines)
+    int line_count = 0;
+    for (char c : csv) {
+        if (c == '\n') ++line_count;
+    }
+    ASSERT(line_count == 12);
+}
+
+TEST("Phase 1 - export_csv: exports to file and content matches") {
+    thermo::SimulationResult res = thermo::run_for_N(1.0, 1e-4, 10.0, 10000.0, 100.0, 20.0, 10);
+    const std::string path = "results/test_export_N10.csv";
+    thermo::export_csv(res, path);
+
+    // Read back and verify
+    std::ifstream ifs(path);
+    ASSERT(ifs.is_open());
+    std::string line;
+    std::getline(ifs, line);
+    ASSERT(line == "x_m,T_fe_C,T_exact_C,error_C");
+    ifs.close();
+}
+
+TEST("Phase 1 - export_csv: convergence CSV produces valid rate table") {
+    const double L = 1.0;
+    const double A = 1e-4;
+    const double k = 10.0;
+    const double q = 10000.0;
+    const double T0 = 100.0;
+    const double TL = 20.0;
+
+    std::vector<thermo::SimulationResult> results;
+    for (int N : {10, 20, 40, 80}) {
+        results.push_back(thermo::run_for_N(L, A, k, q, T0, TL, N));
+    }
+
+    std::string conv_csv = thermo::convergence_to_csv(results);
+    ASSERT(conv_csv.find("N,h_m,max_nodal_error_C,max_midpoint_error_C,observed_order") == 0);
+
+    // Export to file
+    const std::string path = "results/test_thermal_convergence.csv";
+    thermo::export_convergence_csv(results, path);
+
+    std::ifstream ifs(path);
+    ASSERT(ifs.is_open());
+    ifs.close();
+}
+
+TEST("Phase 1 - export_csv: invalid inputs throw invalid_argument") {
+    thermo::SimulationResult empty_res;
+    ASSERT_THROWS(thermo::to_csv(empty_res));
+    ASSERT_THROWS(thermo::export_csv(empty_res, "results/dummy.csv"));
+
+    thermo::SimulationResult valid_res = thermo::run_for_N(1.0, 1e-4, 10.0, 10000.0, 100.0, 20.0, 10);
+    ASSERT_THROWS(thermo::export_csv(valid_res, ""));
+
+    std::vector<thermo::SimulationResult> empty_vec;
+    ASSERT_THROWS(thermo::convergence_to_csv(empty_vec));
+    ASSERT_THROWS(thermo::export_convergence_csv(empty_vec, "results/dummy_conv.csv"));
 }

@@ -2,6 +2,7 @@
 #include <cmath>
 #include <stdexcept>
 #include <sstream>
+#include <fstream>
 
 namespace thermo {
 
@@ -316,6 +317,85 @@ SimulationResult run_for_N(double L, double A, double k, double q, double T0, do
     res.max_midpoint_error = mp.max_error;
 
     return res;
+}
+
+std::string to_csv(const SimulationResult& res) {
+    if (res.x_nodes.empty()) {
+        throw std::invalid_argument("to_csv: SimulationResult contains no nodal data.");
+    }
+
+    std::ostringstream oss;
+    oss << "x_m,T_fe_C,T_exact_C,error_C\n";
+    oss.precision(8);
+    oss << std::fixed;
+
+    for (size_t i = 0; i < res.x_nodes.size(); ++i) {
+        oss << res.x_nodes[i] << ","
+            << res.T_fe[i] << ","
+            << res.T_exact[i] << ","
+            << res.nodal_errors[i] << "\n";
+    }
+
+    return oss.str();
+}
+
+void export_csv(const SimulationResult& res, const std::string& filepath) {
+    if (filepath.empty()) {
+        throw std::invalid_argument("export_csv: File path must not be empty.");
+    }
+    std::string content = to_csv(res);
+    std::ofstream ofs(filepath);
+    if (!ofs.is_open()) {
+        throw std::runtime_error("export_csv: Failed to open file for writing: " + filepath);
+    }
+    ofs << content;
+}
+
+std::string convergence_to_csv(const std::vector<SimulationResult>& results) {
+    if (results.empty()) {
+        throw std::invalid_argument("convergence_to_csv: Results vector is empty.");
+    }
+
+    std::ostringstream oss;
+    oss << "N,h_m,max_nodal_error_C,max_midpoint_error_C,observed_order\n";
+    oss.precision(8);
+    oss << std::fixed;
+
+    for (size_t i = 0; i < results.size(); ++i) {
+        const auto& r = results[i];
+        double order = 0.0;
+        if (i > 0 && r.max_midpoint_error > 0.0) {
+            const double e_prev = results[i - 1].max_midpoint_error;
+            const double h_ratio = results[i - 1].h / r.h;
+            if (h_ratio > 1.0) {
+                order = std::log(e_prev / r.max_midpoint_error) / std::log(h_ratio);
+            }
+        }
+
+        oss << r.N << ","
+            << r.h << ","
+            << r.max_nodal_error << ","
+            << r.max_midpoint_error << ",";
+        if (i == 0) {
+            oss << "N/A\n";
+        } else {
+            oss << order << "\n";
+        }
+    }
+
+    return oss.str();
+}
+
+void export_convergence_csv(const std::vector<SimulationResult>& results, const std::string& filepath) {
+    if (filepath.empty()) {
+        throw std::invalid_argument("export_convergence_csv: File path must not be empty.");
+    }
+    std::string content = convergence_to_csv(results);
+    std::ofstream ofs(filepath);
+    if (!ofs.is_open()) {
+        throw std::runtime_error("export_convergence_csv: Failed to open file for writing: " + filepath);
+    }
+    ofs << content;
 }
 
 } // namespace thermo
