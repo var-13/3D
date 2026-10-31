@@ -6,6 +6,7 @@
 #include <stdexcept>
 #include <sstream>
 #include <fstream>
+#include <algorithm>
 
 namespace thermo {
 
@@ -57,8 +58,46 @@ Gradients gradients(double x, double y, const NetworkParams& p) {
 }
 
 double finite_diff_check(double x, double y, const NetworkParams& p, double eps) {
-    (void)x; (void)y; (void)p; (void)eps;
-    return 0.0; // Stub for func 3
+    if (!std::isfinite(eps) || eps <= 0.0) {
+        throw std::invalid_argument("finite_diff_check: Perturbation step eps must be positive and finite.");
+    }
+
+    Gradients analytical = gradients(x, y, p);
+
+    auto eval_loss = [&](const NetworkParams& params) -> double {
+        return forward(x, y, params).loss;
+    };
+
+    // w
+    NetworkParams pw_plus = p, pw_minus = p;
+    pw_plus.w += eps;
+    pw_minus.w -= eps;
+    const double num_dw = (eval_loss(pw_plus) - eval_loss(pw_minus)) / (2.0 * eps);
+
+    // b
+    NetworkParams pb_plus = p, pb_minus = p;
+    pb_plus.b += eps;
+    pb_minus.b -= eps;
+    const double num_db = (eval_loss(pb_plus) - eval_loss(pb_minus)) / (2.0 * eps);
+
+    // v
+    NetworkParams pv_plus = p, pv_minus = p;
+    pv_plus.v += eps;
+    pv_minus.v -= eps;
+    const double num_dv = (eval_loss(pv_plus) - eval_loss(pv_minus)) / (2.0 * eps);
+
+    // c
+    NetworkParams pc_plus = p, pc_minus = p;
+    pc_plus.c += eps;
+    pc_minus.c -= eps;
+    const double num_dc = (eval_loss(pc_plus) - eval_loss(pc_minus)) / (2.0 * eps);
+
+    const double diff_w = std::abs(analytical.dw - num_dw);
+    const double diff_b = std::abs(analytical.db - num_db);
+    const double diff_v = std::abs(analytical.dv - num_dv);
+    const double diff_c = std::abs(analytical.dc - num_dc);
+
+    return std::max({diff_w, diff_b, diff_v, diff_c});
 }
 
 NetworkParams update_step(const NetworkParams& p, const Gradients& g, double lr) {

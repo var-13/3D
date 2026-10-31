@@ -105,3 +105,39 @@ TEST("Phase 2 - gradients: non-finite inputs throw invalid_argument") {
     thermo::NetworkParams p;
     ASSERT_THROWS(thermo::gradients(nan_val, 2.0, p));
 }
+
+// ── Function 3: finite_diff_check ────────────────────────────────────────────
+
+TEST("Phase 2 - finite_diff_check: central difference error <= 1e-5 for all four parameters") {
+    const double x = 1.0;
+    const double y = 2.0;
+    thermo::NetworkParams p;
+    p.w = 0.5;
+    p.b = 0.0;
+    p.v = 1.0;
+    p.c = 0.0;
+
+    const double max_err = thermo::finite_diff_check(x, y, p, 1e-6);
+
+    // Brief requirement: assert abs error <= 1e-5 for all four
+    ASSERT(max_err <= 1e-5);
+    // In practice, central difference is accurate to ~1e-10
+    ASSERT(max_err < 1e-9);
+}
+
+TEST("Phase 2 - finite_diff_check: holds across arbitrary non-zero parameters") {
+    thermo::NetworkParams p;
+    p.w = 1.25;
+    p.b = -0.4;
+    p.v = 2.1;
+    p.c = 0.75;
+
+    const double max_err = thermo::finite_diff_check(0.85, 1.5, p, 1e-6);
+    ASSERT(max_err <= 1e-5);
+}
+
+TEST("Phase 2 - finite_diff_check: non-positive eps throws invalid_argument") {
+    thermo::NetworkParams p;
+    ASSERT_THROWS(thermo::finite_diff_check(1.0, 2.0, p, 0.0));
+    ASSERT_THROWS(thermo::finite_diff_check(1.0, 2.0, p, -1e-6));
+}
