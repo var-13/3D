@@ -335,3 +335,51 @@ TEST("Phase 1 - midpoint_error: invalid inputs throw invalid_argument") {
     ASSERT_THROWS(thermo::midpoint_error(valid, -1.0, 10.0, 10000.0, 100.0, 20.0));
     ASSERT_THROWS(thermo::midpoint_error(valid, 1.0, -10.0, 10000.0, 100.0, 20.0));
 }
+
+// ── Function 7: run_for_N ────────────────────────────────────────────────────
+
+TEST("Phase 1 - run_for_N: end-to-end pipeline execution for N=10, 20, 40, 80") {
+    const double L = 1.0;
+    const double A = 1e-4;
+    const double k = 10.0;
+    const double q = 10000.0;
+    const double T0 = 100.0;
+    const double TL = 20.0;
+
+    const std::vector<int> meshes = {10, 20, 40, 80};
+    const std::vector<double> expected_mp_err = {1.25, 0.3125, 0.078125, 0.01953125};
+
+    for (size_t m = 0; m < meshes.size(); ++m) {
+        const int N = meshes[m];
+        thermo::SimulationResult res = thermo::run_for_N(L, A, k, q, T0, TL, N);
+
+        ASSERT(res.N == N);
+        ASSERT(static_cast<int>(res.x_nodes.size()) == N + 1);
+        ASSERT(static_cast<int>(res.T_fe.size()) == N + 1);
+        ASSERT(static_cast<int>(res.T_exact.size()) == N + 1);
+        ASSERT(static_cast<int>(res.x_mid.size()) == N);
+        ASSERT(static_cast<int>(res.T_fe_mid.size()) == N);
+
+        // Boundary temperatures
+        ASSERT_NEAR(res.T_fe[0], T0, 1e-12);
+        ASSERT_NEAR(res.T_fe[N], TL, 1e-12);
+
+        // Nodal superconvergence
+        ASSERT(res.max_nodal_error < 1e-10);
+
+        // Midpoint analytical error
+        ASSERT_NEAR(res.max_midpoint_error, expected_mp_err[m], 1e-10);
+    }
+}
+
+TEST("Phase 1 - run_for_N: invalid parameters throw invalid_argument") {
+    // N <= 0
+    ASSERT_THROWS(thermo::run_for_N(1.0, 1e-4, 10.0, 10000.0, 100.0, 20.0, 0));
+    ASSERT_THROWS(thermo::run_for_N(1.0, 1e-4, 10.0, 10000.0, 100.0, 20.0, -10));
+
+    // Negative conductivity
+    ASSERT_THROWS(thermo::run_for_N(1.0, 1e-4, -10.0, 10000.0, 100.0, 20.0, 10));
+
+    // Negative area
+    ASSERT_THROWS(thermo::run_for_N(1.0, -1e-4, 10.0, 10000.0, 100.0, 20.0, 10));
+}

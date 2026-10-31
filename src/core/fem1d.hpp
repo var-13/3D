@@ -75,4 +75,39 @@ struct MidpointErrorResult {
 MidpointErrorResult compute_midpoint_errors(const std::vector<double>& T, double L, double k, double q, double T0, double TL);
 double midpoint_error(const std::vector<double>& T, double L, double k, double q, double T0, double TL);
 
+struct SimulationResult {
+    int N = 0;
+    double L = 0.0;
+    double A = 0.0;
+    double k = 0.0;
+    double q = 0.0;
+    double T0 = 0.0;
+    double TL = 0.0;
+    double h = 0.0;
+
+    // Nodal values (size N + 1)
+    std::vector<double> x_nodes;
+    std::vector<double> T_fe;
+    std::vector<double> T_exact;
+    std::vector<double> nodal_errors;
+
+    // Midpoint values (size N)
+    std::vector<double> x_mid;
+    std::vector<double> T_fe_mid;
+    std::vector<double> T_exact_mid;
+    std::vector<double> midpoint_errors;
+
+    double max_nodal_error = 0.0;
+    double max_midpoint_error = 0.0;
+};
+
+// Executes the complete pipeline for mesh size N:
+// 1. assemble_global(L, A, k, q, N)
+// 2. apply_boundary_conditions(sys, T0, TL)
+// 3. solve(sys)
+// 4. exact_solution(...) at nodes and midpoints
+// 5. compute_midpoint_errors(...)
+// Throws std::invalid_argument if N <= 0, L <= 0, A <= 0, k <= 0, or any input is non-finite.
+SimulationResult run_for_N(double L, double A, double k, double q, double T0, double TL, int N);
+
 } // namespace thermo

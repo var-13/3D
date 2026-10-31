@@ -266,4 +266,56 @@ double midpoint_error(const std::vector<double>& T, double L, double k, double q
     return compute_midpoint_errors(T, L, k, q, T0, TL).max_error;
 }
 
+SimulationResult run_for_N(double L, double A, double k, double q, double T0, double TL, int N) {
+    if (N <= 0) {
+        throw std::invalid_argument("run_for_N: Mesh element count N must be positive (> 0).");
+    }
+
+    GlobalSystem sys = assemble_global(L, A, k, q, N);
+    apply_boundary_conditions(sys, T0, TL);
+    std::vector<double> T = solve(sys);
+
+    SimulationResult res;
+    res.N = N;
+    res.L = L;
+    res.A = A;
+    res.k = k;
+    res.q = q;
+    res.T0 = T0;
+    res.TL = TL;
+    res.h = L / static_cast<double>(N);
+
+    // Compute nodal coordinates, exact solution, and errors
+    const int num_nodes = N + 1;
+    res.x_nodes.resize(num_nodes);
+    res.T_fe = T;
+    res.T_exact.resize(num_nodes);
+    res.nodal_errors.resize(num_nodes);
+    res.max_nodal_error = 0.0;
+
+    for (int i = 0; i < num_nodes; ++i) {
+        const double x_i = i * res.h;
+        const double t_ex = exact_solution(x_i, L, k, q, T0, TL);
+        const double err = std::abs(T[i] - t_ex);
+
+        res.x_nodes[i] = x_i;
+        res.T_exact[i] = t_ex;
+        res.nodal_errors[i] = err;
+
+        if (err > res.max_nodal_error) {
+            res.max_nodal_error = err;
+        }
+    }
+
+    // Compute midpoint values and errors
+    MidpointErrorResult mp = compute_midpoint_errors(T, L, k, q, T0, TL);
+    res.x_mid = mp.x_mid;
+    res.T_fe_mid = mp.T_fe_mid;
+    res.T_exact_mid = mp.T_exact_mid;
+    res.midpoint_errors = mp.errors;
+    res.max_midpoint_error = mp.max_error;
+
+    return res;
+}
+
 } // namespace thermo
