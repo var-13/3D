@@ -5,11 +5,18 @@
 
 ---
 
-## 🌐 Live Deployments & Repository Links
+### 🎬 Demonstration Video Walkthrough
+> 📺 **Video Link:** [**▶ Watch 3–5 Min Demonstration Video on Google Drive**](https://drive.google.com/file/d/1oRRoOZ5wvf7-aGRu-NaxsGebJjBp9HAy/view?usp=sharing)  
+> *(Demonstrates automated build, test pass, 3D CAD/FEA viewport, thermal convergence, multicore benchmark, and embedded fault recovery).*
 
-- **Live Web Deployment (Vercel):** [https://3d-varsha.vercel.app/](https://3d-varsha.vercel.app/)
-- **GitHub Repository:** [https://github.com/var-13/3D](https://github.com/var-13/3D)
-- **CI / Build Status:** Automated GitHub Actions (Build, Test, and Pages Deployment)
+---
+
+## 🌐 Live Deployments & Key Links
+
+- 🎬 **Demonstration Video:** [Google Drive Video Link](https://drive.google.com/file/d/1oRRoOZ5wvf7-aGRu-NaxsGebJjBp9HAy/view?usp=sharing)
+- 🌐 **Live Web App (Vercel):** [https://3d-varsha.vercel.app/](https://3d-varsha.vercel.app/)
+- 💻 **GitHub Repository:** [https://github.com/var-13/3D](https://github.com/var-13/3D)
+- ⚙️ **CI / Automated Tests:** [GitHub Actions Workflow](https://github.com/var-13/3D/actions) (61/61 tests passing)
 
 ---
 

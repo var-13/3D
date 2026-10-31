@@ -1,6 +1,7 @@
 # ThermoBench: Feature Demonstration & Timestamped Walkthrough
 
-**Live Demo URL:** [https://3d-varsha.vercel.app/](https://3d-varsha.vercel.app/)  
+**Live Web Application:** [https://3d-varsha.vercel.app/](https://3d-varsha.vercel.app/)  
+**Demonstration Video:** [▶ Google Drive Video Walkthrough](https://drive.google.com/file/d/1oRRoOZ5wvf7-aGRu-NaxsGebJjBp9HAy/view?usp=sharing)  
 **Evaluation Target:** ThermoBench v0.1.0 (Windows 11 x64 / Web)  
 **Date & Timestamp:** 2026-10-31 21:30 UTC+05:30  
 **Test Suite Status:** 61 / 61 tests PASSED  
