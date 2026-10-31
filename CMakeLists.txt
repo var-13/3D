@@ -59,6 +59,7 @@ endif()
 add_executable(RunTests
     tests/test_runner.cpp
     tests/test_phase0.cpp
+    tests/test_phase1.cpp
 )
 target_link_libraries(RunTests PRIVATE thermo_core)
 

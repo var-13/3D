@@ -75,13 +75,15 @@ std::vector<TestCase>& test_registry();
 #define TEST_CONCAT(a, b)  TEST_CONCAT_(a, b)
 
 #define TEST_IMPL(name_str, N)                                                     \
-    struct TEST_CONCAT(TestReg_, N) {                                              \
-        TEST_CONCAT(TestReg_, N)() {                                               \
-            test_registry().push_back({name_str, [this](){ run(); }});            \
-        }                                                                          \
-        void run();                                                                \
-    } TEST_CONCAT(test_inst_, N);                                                  \
-    void TEST_CONCAT(TestReg_, N)::run()
+    namespace {                                                                    \
+        struct TEST_CONCAT(TestReg_, N) {                                          \
+            TEST_CONCAT(TestReg_, N)() {                                           \
+                test_registry().push_back({name_str, [this](){ run(); }});        \
+            }                                                                      \
+            void run();                                                            \
+        } TEST_CONCAT(test_inst_, N);                                              \
+    }                                                                              \
+    inline void TEST_CONCAT(TestReg_, N)::run()
 
 // Public macro: captures __COUNTER__ once.
 #define TEST(name_str) TEST_IMPL(name_str, __COUNTER__)
