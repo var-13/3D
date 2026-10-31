@@ -61,12 +61,124 @@
       <div class="panel-header">
         <h1>Thermal FEA — 1-D Heat Conduction</h1>
         <p class="panel-desc">
-          Solves −d/dx(kA dT/dx) = qA on a 1 m rod with Dirichlet BCs.
-          Uses 2-node linear finite elements.
+          Steady-state heat conduction with internal heat source: 
+          <code>−d/dx(kA · dT/dx) = qA</code> on <code>[0, L]</code> with Dirichlet boundary conditions <code>T(0) = T₀</code>, <code>T(L) = T_L</code>.
+          Discretised with 2-node linear elements (C++17 Thomas algorithm solver).
         </p>
       </div>
-      <div class="status-bar info" id="fem-status">Phase 1 – coming soon.</div>
-      <div class="placeholder-view">Temperature plot and convergence table will appear here in Phase 1.</div>
+
+      <!-- Parameter controls card -->
+      <div class="card param-card">
+        <h2 class="card-title">⚙ Simulation Parameters</h2>
+        <div class="param-grid">
+          <div class="input-group">
+            <label for="inp-L">Domain Length L [m]</label>
+            <input type="number" id="inp-L" value="1.0" step="0.1" min="0.001">
+          </div>
+          <div class="input-group">
+            <label for="inp-A">Cross Section A [m²]</label>
+            <input type="number" id="inp-A" value="0.0001" step="0.00001" min="0.000001">
+          </div>
+          <div class="input-group">
+            <label for="inp-k">Thermal Conductivity k [W/(m·K)]</label>
+            <input type="number" id="inp-k" value="10.0" step="1" min="0.001">
+          </div>
+          <div class="input-group">
+            <label for="inp-q">Heat Generation q [W/m³]</label>
+            <input type="number" id="inp-q" value="10000.0" step="100">
+          </div>
+          <div class="input-group">
+            <label for="inp-T0">Boundary T(0) [°C]</label>
+            <input type="number" id="inp-T0" value="100.0" step="1">
+          </div>
+          <div class="input-group">
+            <label for="inp-TL">Boundary T(L) [°C]</label>
+            <input type="number" id="inp-TL" value="20.0" step="1">
+          </div>
+          <div class="input-group">
+            <label for="sel-N">Element Count N</label>
+            <select id="sel-N">
+              <option value="10" selected>N = 10 (h = 0.100 m)</option>
+              <option value="20">N = 20 (h = 0.050 m)</option>
+              <option value="40">N = 40 (h = 0.025 m)</option>
+              <option value="80">N = 80 (h = 0.0125 m)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="btn-group">
+          <button id="btn-run-thermal" class="btn btn-primary">▶ Run FEA (Selected N)</button>
+          <button id="btn-run-convergence" class="btn btn-secondary">📊 Run All 4 Meshes (10, 20, 40, 80)</button>
+          <button id="btn-export-thermal-csv" class="btn btn-outline">⬇ Export CSV (Current N)</button>
+          <button id="btn-export-conv-csv" class="btn btn-outline">⬇ Export Convergence CSV</button>
+        </div>
+
+        <div id="thermal-status" class="status-bar info">Ready. Click 'Run FEA' or choose a mesh size.</div>
+      </div>
+
+      <!-- KPI Summary Cards -->
+      <div class="kpi-grid">
+        <div class="kpi-card">
+          <div class="kpi-label">Active Mesh Size N</div>
+          <div class="kpi-value" id="kpi-N">10</div>
+          <div class="kpi-sub" id="kpi-h">h = 0.1000 m</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Max Midpoint Error</div>
+          <div class="kpi-value highlight" id="kpi-mid-err">—</div>
+          <div class="kpi-sub" id="kpi-mid-expected">Expected: (q/2k)·(h/2)²</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Max Nodal Error</div>
+          <div class="kpi-value" id="kpi-node-err">—</div>
+          <div class="kpi-sub">Superconvergence &lt; 10⁻¹⁰ °C</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Observed Convergence Order</div>
+          <div class="kpi-value" id="kpi-order">—</div>
+          <div class="kpi-sub">Target: 2.00 (O(h²))</div>
+        </div>
+      </div>
+
+      <!-- Visualisation Charts Grid -->
+      <div class="charts-grid">
+        <div class="card chart-card">
+          <h2 class="card-title">📈 Temperature Distribution T(x) [°C] vs Position x [m]</h2>
+          <div class="chart-container">
+            <canvas id="chart-temperature"></canvas>
+          </div>
+        </div>
+        <div class="card chart-card">
+          <h2 class="card-title">📐 Mesh Convergence: Log-Log Error vs Grid Size h</h2>
+          <div class="chart-container">
+            <canvas id="chart-convergence"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- Convergence Table Card -->
+      <div class="card table-card">
+        <h2 class="card-title">📋 4-Mesh Convergence Benchmark Table</h2>
+        <div class="table-responsive">
+          <table class="data-table" id="table-convergence">
+            <thead>
+              <tr>
+                <th>Mesh N</th>
+                <th>Element Size h [m]</th>
+                <th>Max Nodal Error [°C]</th>
+                <th>Max Midpoint Error [°C]</th>
+                <th>Theoretical Error [°C]</th>
+                <th>Error Ratio (e_{2h} / e_h)</th>
+                <th>Observed Order p</th>
+              </tr>
+            </thead>
+            <tbody id="tbody-convergence">
+              <tr><td colspan="7" class="text-center text-muted">Click "Run All 4 Meshes" to populate convergence table.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
     </section>
 
     <!-- ── PERFORMANCE ───────────────────────────────────────────── -->
@@ -98,6 +210,7 @@
     ThermoBench · internship project · synthetic/open data only · no credentials stored
   </footer>
 
+  <script src="vendor/chart.umd.min.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>

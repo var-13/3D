@@ -67,6 +67,90 @@ int main(int argc, char* argv[]) {
         res.set_content("{\"status\":\"ok\"}", "application/json");
     });
 
+    // ── /api/thermal/run ──────────────────────────────────────────────────
+    // Query params: L, A, k, q, T0, TL, N
+    svr.Get("/api/thermal/run", [](const httplib::Request& req, httplib::Response& res) {
+        try {
+            double L  = req.has_param("L")  ? std::stod(req.get_param_value("L"))  : 1.0;
+            double A  = req.has_param("A")  ? std::stod(req.get_param_value("A"))  : 1e-4;
+            double k  = req.has_param("k")  ? std::stod(req.get_param_value("k"))  : 10.0;
+            double q  = req.has_param("q")  ? std::stod(req.get_param_value("q"))  : 10000.0;
+            double T0 = req.has_param("T0") ? std::stod(req.get_param_value("T0")) : 100.0;
+            double TL = req.has_param("TL") ? std::stod(req.get_param_value("TL")) : 20.0;
+            int    N  = req.has_param("N")  ? std::stoi(req.get_param_value("N"))  : 10;
+
+            thermo::SimulationResult sim = thermo::run_for_N(L, A, k, q, T0, TL, N);
+            res.set_content(thermo::to_json(sim), "application/json");
+        } catch (const std::exception& e) {
+            res.status = 400;
+            res.set_content("{\"success\":false,\"error\":\"" + std::string(e.what()) + "\"}", "application/json");
+        }
+    });
+
+    // ── /api/thermal/convergence ─────────────────────────────────────────
+    // Runs meshes N = 10, 20, 40, 80
+    svr.Get("/api/thermal/convergence", [](const httplib::Request& req, httplib::Response& res) {
+        try {
+            double L  = req.has_param("L")  ? std::stod(req.get_param_value("L"))  : 1.0;
+            double A  = req.has_param("A")  ? std::stod(req.get_param_value("A"))  : 1e-4;
+            double k  = req.has_param("k")  ? std::stod(req.get_param_value("k"))  : 10.0;
+            double q  = req.has_param("q")  ? std::stod(req.get_param_value("q"))  : 10000.0;
+            double T0 = req.has_param("T0") ? std::stod(req.get_param_value("T0")) : 100.0;
+            double TL = req.has_param("TL") ? std::stod(req.get_param_value("TL")) : 20.0;
+
+            std::vector<thermo::SimulationResult> results;
+            for (int N : {10, 20, 40, 80}) {
+                results.push_back(thermo::run_for_N(L, A, k, q, T0, TL, N));
+            }
+            res.set_content(thermo::convergence_to_json(results), "application/json");
+        } catch (const std::exception& e) {
+            res.status = 400;
+            res.set_content("{\"success\":false,\"error\":\"" + std::string(e.what()) + "\"}", "application/json");
+        }
+    });
+
+    // ── /api/thermal/export ───────────────────────────────────────────────
+    svr.Get("/api/thermal/export", [](const httplib::Request& req, httplib::Response& res) {
+        try {
+            double L  = req.has_param("L")  ? std::stod(req.get_param_value("L"))  : 1.0;
+            double A  = req.has_param("A")  ? std::stod(req.get_param_value("A"))  : 1e-4;
+            double k  = req.has_param("k")  ? std::stod(req.get_param_value("k"))  : 10.0;
+            double q  = req.has_param("q")  ? std::stod(req.get_param_value("q"))  : 10000.0;
+            double T0 = req.has_param("T0") ? std::stod(req.get_param_value("T0")) : 100.0;
+            double TL = req.has_param("TL") ? std::stod(req.get_param_value("TL")) : 20.0;
+            int    N  = req.has_param("N")  ? std::stoi(req.get_param_value("N"))  : 10;
+
+            thermo::SimulationResult sim = thermo::run_for_N(L, A, k, q, T0, TL, N);
+            res.set_header("Content-Disposition", "attachment; filename=\"thermal_N" + std::to_string(N) + ".csv\"");
+            res.set_content(thermo::to_csv(sim), "text/csv");
+        } catch (const std::exception& e) {
+            res.status = 400;
+            res.set_content(std::string("Error: ") + e.what(), "text/plain");
+        }
+    });
+
+    // ── /api/thermal/export_convergence ──────────────────────────────────
+    svr.Get("/api/thermal/export_convergence", [](const httplib::Request& req, httplib::Response& res) {
+        try {
+            double L  = req.has_param("L")  ? std::stod(req.get_param_value("L"))  : 1.0;
+            double A  = req.has_param("A")  ? std::stod(req.get_param_value("A"))  : 1e-4;
+            double k  = req.has_param("k")  ? std::stod(req.get_param_value("k"))  : 10.0;
+            double q  = req.has_param("q")  ? std::stod(req.get_param_value("q"))  : 10000.0;
+            double T0 = req.has_param("T0") ? std::stod(req.get_param_value("T0")) : 100.0;
+            double TL = req.has_param("TL") ? std::stod(req.get_param_value("TL")) : 20.0;
+
+            std::vector<thermo::SimulationResult> results;
+            for (int N : {10, 20, 40, 80}) {
+                results.push_back(thermo::run_for_N(L, A, k, q, T0, TL, N));
+            }
+            res.set_header("Content-Disposition", "attachment; filename=\"thermal_convergence.csv\"");
+            res.set_content(thermo::convergence_to_csv(results), "text/csv");
+        } catch (const std::exception& e) {
+            res.status = 400;
+            res.set_content(std::string("Error: ") + e.what(), "text/plain");
+        }
+    });
+
     // ── Static file serving ───────────────────────────────────────────────
     svr.Get("/.*", [&ui_dir](const httplib::Request& req, httplib::Response& res) {
         // Strip leading '/'

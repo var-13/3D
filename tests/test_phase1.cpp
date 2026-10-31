@@ -442,6 +442,34 @@ TEST("Phase 1 - export_csv: convergence CSV produces valid rate table") {
     ifs.close();
 }
 
+TEST("Phase 1 - export_csv: generate official benchmark CSV files in results/") {
+    const double L = 1.0;
+    const double A = 1e-4;
+    const double k = 10.0;
+    const double q = 10000.0;
+    const double T0 = 100.0;
+    const double TL = 20.0;
+
+    std::vector<thermo::SimulationResult> results;
+    for (int N : {10, 20, 40, 80}) {
+        thermo::SimulationResult res = thermo::run_for_N(L, A, k, q, T0, TL, N);
+        results.push_back(res);
+        thermo::export_csv(res, "results/thermal_N" + std::to_string(N) + ".csv");
+    }
+    thermo::export_convergence_csv(results, "results/thermal_convergence.csv");
+
+    // Verify all 5 files exist and are non-empty
+    for (int N : {10, 20, 40, 80}) {
+        std::ifstream f("results/thermal_N" + std::to_string(N) + ".csv");
+        ASSERT(f.is_open());
+        std::string header;
+        std::getline(f, header);
+        ASSERT(header == "x_m,T_fe_C,T_exact_C,error_C");
+    }
+    std::ifstream fc("results/thermal_convergence.csv");
+    ASSERT(fc.is_open());
+}
+
 TEST("Phase 1 - export_csv: invalid inputs throw invalid_argument") {
     thermo::SimulationResult empty_res;
     ASSERT_THROWS(thermo::to_csv(empty_res));

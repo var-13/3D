@@ -398,4 +398,86 @@ void export_convergence_csv(const std::vector<SimulationResult>& results, const 
     ofs << content;
 }
 
+static void append_json_array(std::ostringstream& oss, const std::string& key, const std::vector<double>& arr) {
+    oss << "\"" << key << "\":[";
+    for (size_t i = 0; i < arr.size(); ++i) {
+        oss << arr[i];
+        if (i + 1 < arr.size()) oss << ",";
+    }
+    oss << "]";
+}
+
+std::string to_json(const SimulationResult& res) {
+    std::ostringstream oss;
+    oss.precision(8);
+    oss << std::fixed;
+    oss << "{\"success\":true,"
+        << "\"N\":" << res.N << ","
+        << "\"L\":" << res.L << ","
+        << "\"A\":" << res.A << ","
+        << "\"k\":" << res.k << ","
+        << "\"q\":" << res.q << ","
+        << "\"T0\":" << res.T0 << ","
+        << "\"TL\":" << res.TL << ","
+        << "\"h\":" << res.h << ","
+        << "\"max_nodal_error\":" << res.max_nodal_error << ","
+        << "\"max_midpoint_error\":" << res.max_midpoint_error << ",";
+
+    append_json_array(oss, "x_nodes", res.x_nodes);
+    oss << ",";
+    append_json_array(oss, "T_fe", res.T_fe);
+    oss << ",";
+    append_json_array(oss, "T_exact", res.T_exact);
+    oss << ",";
+    append_json_array(oss, "nodal_errors", res.nodal_errors);
+    oss << ",";
+    append_json_array(oss, "x_mid", res.x_mid);
+    oss << ",";
+    append_json_array(oss, "T_fe_mid", res.T_fe_mid);
+    oss << ",";
+    append_json_array(oss, "T_exact_mid", res.T_exact_mid);
+    oss << ",";
+    append_json_array(oss, "midpoint_errors", res.midpoint_errors);
+    oss << "}";
+
+    return oss.str();
+}
+
+std::string convergence_to_json(const std::vector<SimulationResult>& results) {
+    std::ostringstream oss;
+    oss.precision(8);
+    oss << std::fixed;
+    oss << "{\"success\":true,\"meshes\":[";
+
+    for (size_t i = 0; i < results.size(); ++i) {
+        const auto& r = results[i];
+        double order = 0.0;
+        bool has_order = false;
+        if (i > 0 && r.max_midpoint_error > 0.0) {
+            const double e_prev = results[i - 1].max_midpoint_error;
+            const double h_ratio = results[i - 1].h / r.h;
+            if (h_ratio > 1.0) {
+                order = std::log(e_prev / r.max_midpoint_error) / std::log(h_ratio);
+                has_order = true;
+            }
+        }
+
+        oss << "{\"N\":" << r.N
+            << ",\"h\":" << r.h
+            << ",\"max_nodal_error\":" << r.max_nodal_error
+            << ",\"max_midpoint_error\":" << r.max_midpoint_error
+            << ",\"observed_order\":";
+        if (has_order) {
+            oss << order;
+        } else {
+            oss << "null";
+        }
+        oss << "}";
+        if (i + 1 < results.size()) oss << ",";
+    }
+
+    oss << "]}";
+    return oss.str();
+}
+
 } // namespace thermo

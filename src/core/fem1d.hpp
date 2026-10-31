@@ -126,4 +126,10 @@ std::string convergence_to_csv(const std::vector<SimulationResult>& results);
 // Throws std::invalid_argument if filepath is empty, std::runtime_error if file cannot be opened.
 void export_convergence_csv(const std::vector<SimulationResult>& results, const std::string& filepath);
 
+// Serializes simulation result to JSON string.
+std::string to_json(const SimulationResult& res);
+
+// Serializes convergence results across meshes to JSON string.
+std::string convergence_to_json(const std::vector<SimulationResult>& results);
+
 } // namespace thermo
