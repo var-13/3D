@@ -144,12 +144,42 @@ std::vector<StepRecord> train_steps(double x, double y, NetworkParams p, double 
 }
 
 std::string loss_to_csv(const std::vector<StepRecord>& history) {
-    (void)history;
-    return {}; // Stub for func 6
+    if (history.empty()) {
+        throw std::invalid_argument("loss_to_csv: Training history is empty.");
+    }
+
+    std::ostringstream oss;
+    oss << "step,loss,y_hat,w,b,v,c,dw,db,dv,dc\n";
+    oss.precision(8);
+    oss << std::fixed;
+
+    for (const auto& r : history) {
+        oss << r.step << ","
+            << r.loss << ","
+            << r.y_hat << ","
+            << r.params.w << ","
+            << r.params.b << ","
+            << r.params.v << ","
+            << r.params.c << ","
+            << r.grads.dw << ","
+            << r.grads.db << ","
+            << r.grads.dv << ","
+            << r.grads.dc << "\n";
+    }
+
+    return oss.str();
 }
 
 void export_loss_csv(const std::vector<StepRecord>& history, const std::string& filepath) {
-    (void)history; (void)filepath;
+    if (filepath.empty()) {
+        throw std::invalid_argument("export_loss_csv: File path must not be empty.");
+    }
+    std::string csv_content = loss_to_csv(history);
+    std::ofstream ofs(filepath);
+    if (!ofs.is_open()) {
+        throw std::runtime_error("export_loss_csv: Failed to open file for writing: " + filepath);
+    }
+    ofs << csv_content;
 }
 
 } // namespace thermo

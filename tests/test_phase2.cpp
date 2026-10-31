@@ -1,10 +1,8 @@
-// tests/test_phase2.cpp
-// Tests for Phase 2: Backpropagation Network
-
 #include "test_runner.hpp"
 #include "core/backprop.hpp"
 #include <cmath>
 #include <limits>
+#include <fstream>
 
 // ── Function 1: forward ──────────────────────────────────────────────────────
 
@@ -225,4 +223,47 @@ TEST("Phase 2 - train_steps: invalid steps or lr throws invalid_argument") {
     ASSERT_THROWS(thermo::train_steps(1.0, 2.0, p, 0.1, 0));
     ASSERT_THROWS(thermo::train_steps(1.0, 2.0, p, 0.1, -10));
     ASSERT_THROWS(thermo::train_steps(1.0, 2.0, p, -0.1, 100));
+}
+
+// ── Function 6: export_loss_csv ──────────────────────────────────────────────
+
+TEST("Phase 2 - export_loss_csv: serializes and writes official results/backprop_loss.csv") {
+    const double x = 1.0;
+    const double y = 2.0;
+    thermo::NetworkParams p0;
+    p0.w = 0.5;
+    p0.b = 0.0;
+    p0.v = 1.0;
+    p0.c = 0.0;
+
+    std::vector<thermo::StepRecord> history = thermo::train_steps(x, y, p0, 0.1, 100);
+
+    // 1. Serialization check
+    std::string csv = thermo::loss_to_csv(history);
+    ASSERT(!csv.empty());
+    ASSERT(csv.find("step,loss,y_hat,w,b,v,c,dw,db,dv,dc\n") == 0);
+
+    // 2. Export official file to results/backprop_loss.csv
+    const std::string filepath = "results/backprop_loss.csv";
+    thermo::export_loss_csv(history, filepath);
+
+    // 3. Verify file exists and has 102 lines (header + 101 records)
+    std::ifstream ifs(filepath);
+    ASSERT(ifs.is_open());
+    int line_count = 0;
+    std::string line;
+    while (std::getline(ifs, line)) {
+        if (!line.empty()) ++line_count;
+    }
+    ASSERT(line_count == 102);
+}
+
+TEST("Phase 2 - export_loss_csv: invalid arguments throw invalid_argument") {
+    std::vector<thermo::StepRecord> empty_hist;
+    ASSERT_THROWS(thermo::loss_to_csv(empty_hist));
+    ASSERT_THROWS(thermo::export_loss_csv(empty_hist, "results/test.csv"));
+
+    thermo::NetworkParams p;
+    std::vector<thermo::StepRecord> valid_hist = thermo::train_steps(1.0, 2.0, p, 0.1, 5);
+    ASSERT_THROWS(thermo::export_loss_csv(valid_hist, ""));
 }
