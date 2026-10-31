@@ -60,4 +60,19 @@ std::vector<double> solve(const GlobalSystem& sys);
 // Throws std::invalid_argument if L <= 0, k <= 0, x < 0, x > L, or any input is non-finite.
 double exact_solution(double x, double L, double k, double q, double T0, double TL);
 
+struct MidpointErrorResult {
+    double max_error = 0.0;
+    std::vector<double> x_mid;
+    std::vector<double> T_fe_mid;
+    std::vector<double> T_exact_mid;
+    std::vector<double> errors;
+};
+
+// Computes the maximum absolute error at element midpoints using FE linear interpolation:
+// T_fe(x_mid) = (T[e] + T[e+1]) / 2.
+// Analytical expectation: max_error = (q / (2*k)) * (h / 2)^2 = 125 * h^2
+// Throws std::invalid_argument if T.size() < 2 or parameters are non-finite/non-positive.
+MidpointErrorResult compute_midpoint_errors(const std::vector<double>& T, double L, double k, double q, double T0, double TL);
+double midpoint_error(const std::vector<double>& T, double L, double k, double q, double T0, double TL);
+
 } // namespace thermo

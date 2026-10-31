@@ -260,3 +260,78 @@ TEST("Phase 1 - exact_solution: out of bounds and non-finite inputs throw invali
     const double nan_val = std::numeric_limits<double>::quiet_NaN();
     ASSERT_THROWS(thermo::exact_solution(nan_val, L, k, q, 100.0, 20.0));
 }
+
+// ── Function 6: midpoint_error ───────────────────────────────────────────────
+
+TEST("Phase 1 - midpoint_error: matches (q/(2k))*(h/2)^2 for N=10, 20, 40, 80") {
+    const double L = 1.0;
+    const double A = 1e-4;
+    const double k = 10.0;
+    const double q = 10000.0;
+    const double T0 = 100.0;
+    const double TL = 20.0;
+
+    const std::vector<int> meshes = {10, 20, 40, 80};
+    const std::vector<double> expected_errors = {1.25, 0.3125, 0.078125, 0.01953125};
+
+    for (size_t m = 0; m < meshes.size(); ++m) {
+        const int N = meshes[m];
+        thermo::GlobalSystem sys = thermo::assemble_global(L, A, k, q, N);
+        thermo::apply_boundary_conditions(sys, T0, TL);
+        std::vector<double> T = thermo::solve(sys);
+
+        // 1. Superconvergence at nodes: nodal values match exact to < 1e-10
+        const double h = L / N;
+        for (int i = 0; i <= N; ++i) {
+            const double x_i = i * h;
+            const double T_exact_node = thermo::exact_solution(x_i, L, k, q, T0, TL);
+            ASSERT_NEAR(T[i], T_exact_node, 1e-10);
+        }
+
+        // 2. Midpoint maximum error matches analytical formula exactly
+        double err = thermo::midpoint_error(T, L, k, q, T0, TL);
+        ASSERT_NEAR(err, expected_errors[m], 1e-10);
+    }
+}
+
+TEST("Phase 1 - midpoint_error: rate of convergence is 2.0 (drops 4x per doubling)") {
+    const double L = 1.0;
+    const double A = 1e-4;
+    const double k = 10.0;
+    const double q = 10000.0;
+    const double T0 = 100.0;
+    const double TL = 20.0;
+
+    auto solve_N = [&](int N) {
+        thermo::GlobalSystem sys = thermo::assemble_global(L, A, k, q, N);
+        thermo::apply_boundary_conditions(sys, T0, TL);
+        return thermo::solve(sys);
+    };
+
+    double e10 = thermo::midpoint_error(solve_N(10), L, k, q, T0, TL);
+    double e20 = thermo::midpoint_error(solve_N(20), L, k, q, T0, TL);
+    double e40 = thermo::midpoint_error(solve_N(40), L, k, q, T0, TL);
+    double e80 = thermo::midpoint_error(solve_N(80), L, k, q, T0, TL);
+
+    // Error drop ratios
+    ASSERT_NEAR(e10 / e20, 4.0, 1e-10);
+    ASSERT_NEAR(e20 / e40, 4.0, 1e-10);
+    ASSERT_NEAR(e40 / e80, 4.0, 1e-10);
+
+    // Observed order p = log(e_coarse / e_fine) / log(2)
+    double p1 = std::log2(e10 / e20);
+    double p2 = std::log2(e20 / e40);
+    double p3 = std::log2(e40 / e80);
+    ASSERT_NEAR(p1, 2.0, 1e-10);
+    ASSERT_NEAR(p2, 2.0, 1e-10);
+    ASSERT_NEAR(p3, 2.0, 1e-10);
+}
+
+TEST("Phase 1 - midpoint_error: invalid inputs throw invalid_argument") {
+    std::vector<double> too_small = {100.0};
+    ASSERT_THROWS(thermo::midpoint_error(too_small, 1.0, 10.0, 10000.0, 100.0, 20.0));
+
+    std::vector<double> valid = {100.0, 20.0};
+    ASSERT_THROWS(thermo::midpoint_error(valid, -1.0, 10.0, 10000.0, 100.0, 20.0));
+    ASSERT_THROWS(thermo::midpoint_error(valid, 1.0, -10.0, 10000.0, 100.0, 20.0));
+}

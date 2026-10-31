@@ -222,4 +222,48 @@ double exact_solution(double x, double L, double k, double q, double T0, double 
     return linear_part + source_part;
 }
 
+MidpointErrorResult compute_midpoint_errors(const std::vector<double>& T, double L, double k, double q, double T0, double TL) {
+    if (T.size() < 2) {
+        throw std::invalid_argument("compute_midpoint_errors: Temperature vector must have at least 2 nodes.");
+    }
+    if (L <= 0.0 || k <= 0.0) {
+        throw std::invalid_argument("compute_midpoint_errors: L and k must be strictly positive.");
+    }
+    if (!std::isfinite(L) || !std::isfinite(k) || !std::isfinite(q) || !std::isfinite(T0) || !std::isfinite(TL)) {
+        throw std::invalid_argument("compute_midpoint_errors: All physical parameters must be finite.");
+    }
+
+    const int N = static_cast<int>(T.size()) - 1;
+    const double h = L / static_cast<double>(N);
+
+    MidpointErrorResult res;
+    res.x_mid.resize(N);
+    res.T_fe_mid.resize(N);
+    res.T_exact_mid.resize(N);
+    res.errors.resize(N);
+    res.max_error = 0.0;
+
+    for (int e = 0; e < N; ++e) {
+        const double x_m = (static_cast<double>(e) + 0.5) * h;
+        const double t_fe = 0.5 * (T[e] + T[e + 1]);
+        const double t_ex = exact_solution(x_m, L, k, q, T0, TL);
+        const double err = std::abs(t_fe - t_ex);
+
+        res.x_mid[e] = x_m;
+        res.T_fe_mid[e] = t_fe;
+        res.T_exact_mid[e] = t_ex;
+        res.errors[e] = err;
+
+        if (err > res.max_error) {
+            res.max_error = err;
+        }
+    }
+
+    return res;
+}
+
+double midpoint_error(const std::vector<double>& T, double L, double k, double q, double T0, double TL) {
+    return compute_midpoint_errors(T, L, k, q, T0, TL).max_error;
+}
+
 } // namespace thermo
