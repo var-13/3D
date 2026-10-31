@@ -230,7 +230,47 @@ Result: 51 passed, 0 failed.
 
 ---
 
-## Phase 4 — Geometry / CAD  (pending)
+## Phase 4 — Geometry / CAD / ANSYS Point Cloud (2026-10-31)
+**Status:** ✅ COMPLETE
+
+### What was built
+| Function | Description | Test Status |
+|----------|-------------|-------------|
+| `parse_stl_string` / `parse_stl_file` | Robust ASCII STL parser extracting vertices, facet normals, triangle counts, bounding boxes, and surface areas | ✅ PASS |
+| `validate_stl` | Geometric integrity checker detecting non-finite numbers, degenerate boxes, and syntax errors | ✅ PASS |
+| `parse_ansys_csv_string` / `parse_ansys_csv_file` | ANSYS FEA point cloud parser (`node_id,x_m,y_m,z_m,temperature_C`) | ✅ PASS |
+| `validate_pointcloud` | Validates point cloud bounds, min/max temperatures, and finite coordinates | ✅ PASS |
+| `stl_to_json` | Compact JSON serializer for CAD geometry rendering in WebGL | ✅ PASS |
+| `pointcloud_to_json` | Compact JSON serializer for FEA nodal temperatures | ✅ PASS |
+
+### Real Test Output (RunTests.exe)
+```
+=== ThermoBench Test Runner ===
+  [ RUN ] Phase 4 - parse_stl: parses sample.stl with 12 triangles and exact bbox
+  [ OK  ] Phase 4 - parse_stl: parses sample.stl with 12 triangles and exact bbox
+  [ RUN ] Phase 4 - parse_stl: rejects invalid header, truncated content, and NaN coordinates
+  [ OK  ] Phase 4 - parse_stl: rejects invalid header, truncated content, and NaN coordinates
+  [ RUN ] Phase 4 - parse_ansys_csv: parses sample_ansys.csv and extracts 65 thermal nodes
+  [ OK  ] Phase 4 - parse_ansys_csv: parses sample_ansys.csv and extracts 65 thermal nodes
+  [ RUN ] Phase 4 - parse_ansys_csv: rejects bad header, missing columns, and non-numeric values
+  [ OK  ] Phase 4 - parse_ansys_csv: rejects bad header, missing columns, and non-numeric values
+  [ RUN ] Phase 4 - serializers: stl_to_json and pointcloud_to_json produce valid schemas
+  [ OK  ] Phase 4 - serializers: stl_to_json and pointcloud_to_json produce valid schemas
+
+Result: 56 passed, 0 failed.
+```
+
+### Datasets Created
+- `data/sample.stl`: ASCII STL cooling block ($50\text{ mm} \times 50\text{ mm} \times 10\text{ mm}$, 12 facets, $0.0070\text{ m}^2$ area).
+- `data/sample_ansys.csv`: 65-node synthetic ANSYS FEA thermal point cloud ($T \in [28.2^\circ\text{C}, 94.8^\circ\text{C}]$).
+- `data/PROVENANCE.md`: Mathematical specification, coordinate frame, and confirmation that no proprietary/NDA data is used.
+
+### Web UI
+- `ui/index.html` & `ui/js/viewer3d.js`: Three.js interactive 3D WebGL viewport with solid/wireframe toggle, thermal colormap, node hover inspector, and camera orbit/pan/zoom controls.
+
+---
+
 ## Phase 5 — Embedded design + mocks  (pending)
 ## Phase 6 — Packaging and evidence  (pending)
+
 

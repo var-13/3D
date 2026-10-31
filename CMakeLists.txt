@@ -32,6 +32,7 @@ add_library(thermo_core STATIC
     src/core/fem1d.cpp
     src/core/backprop.cpp
     src/core/batch_solver.cpp
+    src/core/geometry.cpp
 )
 target_include_directories(thermo_core PUBLIC src)
 
@@ -64,6 +65,7 @@ add_executable(RunTests
     tests/test_phase1.cpp
     tests/test_phase2.cpp
     tests/test_phase3.cpp
+    tests/test_phase4.cpp
 )
 target_link_libraries(RunTests PRIVATE thermo_core)
 

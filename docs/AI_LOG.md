@@ -141,4 +141,45 @@ Verified benchmark metrics on Windows 11 and confirmed Amdahl's law scaling beha
   - When calling `thermo::run_for_N` inside `batch_solver.cpp`, the arguments were passed as `run_for_N(tc.N, tc.L, tc.A, tc.k, tc.q, tc.T0, tc.TL)`. However, the function definition expects `run_for_N(double L, double A, double k, double q, double T0, double TL, int N)`. Due to implicit conversion between `double` and `int`, `tc.N` was converted to `L` and `tc.TL` was converted to `N`, which caused `T_fe.size()` to mismatch in unit tests.
   - **Correction**: Realigned argument order to `(tc.L, tc.A, tc.k, tc.q, tc.T0, tc.TL, tc.N)`.
 
+---
+
+## Phase 4 — 2026-10-31
+
+### My prompt (paraphrased)
+Implement Phase 4: Geometry / CAD / ANSYS Point Cloud. Build ASCII STL parser with syntax validation, normal checks, surface area computation, and bounding box calculation. Build ANSYS CSV point cloud parser (`node_id,x_m,y_m,z_m,temperature_C`) with validation. Create sample datasets (`data/sample.stl`, `data/sample_ansys.csv`, `data/PROVENANCE.md`). Expose HTTP server endpoints. Upgrade UI with Three.js 3D viewport, thermal heatmap shader, node inspector, and camera controls.
+
+### What the AI did
+1. Implemented all parser and validation functions in `src/core/geometry.{hpp,cpp}`:
+   - `parse_stl_string` / `parse_stl_file`: ASCII STL tokenizer parsing normal and vertex vectors, validating finiteness, calculating triangle area via 3D vector cross product $0.5 \times |(v_2 - v_1) \times (v_3 - v_1)|$, and expanding 3D bounding boxes.
+   - `validate_stl`: Rigorous geometric and topological integrity checks.
+   - `parse_ansys_csv_string` / `parse_ansys_csv_file`: CSV parser with header verification, 5-column schema validation, NaN/Inf rejection, and min/max temperature tracking.
+   - `validate_pointcloud`: Bounds and sanity checks for thermal point clouds.
+   - `stl_to_json` & `pointcloud_to_json`: High-speed JSON serializers for WebGL rendering.
+2. Created synthetic evaluation datasets:
+   - `data/sample.stl`: 12-facet cooling block ($50 \times 50 \times 10$ mm, $0.0070\text{ m}^2$ area).
+   - `data/sample_ansys.csv`: 65-node Gaussian hotspot thermal distribution ($T \in [28.2^\circ\text{C}, 94.8^\circ\text{C}]$).
+   - `data/PROVENANCE.md`: Full provenance documentation verifying open synthetic generation.
+3. Added unit tests in `tests/test_phase4.cpp` (5 new tests, bringing test suite to 56 passing tests).
+4. Added HTTP routes in `src/server/main.cpp`: `/api/geometry/stl`, `/api/geometry/pointcloud`, `/api/geometry/stl_raw`, `/api/geometry/csv_raw`.
+5. Created `ui/js/viewer3d.js` utilizing local `ui/vendor/three.module.min.js`:
+   - Interactive Three.js WebGL renderer with metallic lighting and grid helper.
+   - Custom mouse controls (left drag: orbit, right drag: pan, scroll: zoom).
+   - Raycasting node inspector showing node ID, temperature, and coordinates on hover.
+   - Shaded solid vs wireframe toggle and auto-rotation toggle.
+
+### What I changed
+Verified 3D coordinates alignment between STL vertices and ANSYS nodes.
+
+### How it was validated
+- Build: GCC 16.2.0 + Ninja with `-Wall -Wextra -Wpedantic -Werror` — zero errors, zero warnings.
+- Unit tests: `RunTests.exe` executed — 56/56 tests passed.
+- Server tested: `/api/geometry/stl` and `/api/geometry/pointcloud` return valid JSON.
+- 3D WebGL viewport tested: Renders STL heatsink and 65 colored FEA nodes.
+
+### Mistakes / doubts
+- **Real mistake recorded**:
+  - In standard mechanical CAD exports (like ANSYS/SolidWorks STL), the $Z$-axis represents the extrusion height (vertical), whereas Three.js uses a $Y$-up coordinate convention. Initially, placing nodes with raw coordinates caused the point cloud to appear rotated $90^\circ$ relative to the camera ground grid.
+  - **Correction**: Aligned the local vertical coordinate in `viewer3d.js` so that CAD $Z$ maps to Three.js vertical $Y$, aligning the geometry and point cloud flat onto the ground grid.
+
+
 

@@ -15,6 +15,7 @@
 #include <filesystem>
 #include "core/fem1d.hpp"
 #include "core/batch_solver.hpp"
+#include "core/geometry.hpp"
 
 namespace fs = std::filesystem;
 
@@ -229,6 +230,52 @@ int main(int argc, char* argv[]) {
         } catch (const std::exception& e) {
             res.status = 400;
             res.set_content(std::string("Error: ") + e.what(), "text/plain");
+        }
+    });
+
+    // ── /api/geometry/stl ────────────────────────────────────────────────
+    svr.Get("/api/geometry/stl", [](const httplib::Request&, httplib::Response& res) {
+        try {
+            auto mesh = thermobench::geometry::parse_stl_file("data/sample.stl");
+            res.set_content(thermobench::geometry::stl_to_json(mesh), "application/json");
+        } catch (const std::exception& e) {
+            res.status = 500;
+            res.set_content("{\"error\":\"" + std::string(e.what()) + "\"}", "application/json");
+        }
+    });
+
+    // ── /api/geometry/pointcloud ─────────────────────────────────────────
+    svr.Get("/api/geometry/pointcloud", [](const httplib::Request&, httplib::Response& res) {
+        try {
+            auto pc = thermobench::geometry::parse_ansys_csv_file("data/sample_ansys.csv");
+            res.set_content(thermobench::geometry::pointcloud_to_json(pc), "application/json");
+        } catch (const std::exception& e) {
+            res.status = 500;
+            res.set_content("{\"error\":\"" + std::string(e.what()) + "\"}", "application/json");
+        }
+    });
+
+    // ── /api/geometry/stl_raw ────────────────────────────────────────────
+    svr.Get("/api/geometry/stl_raw", [](const httplib::Request&, httplib::Response& res) {
+        std::string raw = read_file("data/sample.stl");
+        if (raw.empty()) {
+            res.status = 404;
+            res.set_content("data/sample.stl not found", "text/plain");
+        } else {
+            res.set_header("Content-Disposition", "attachment; filename=\"sample.stl\"");
+            res.set_content(raw, "model/stl");
+        }
+    });
+
+    // ── /api/geometry/csv_raw ────────────────────────────────────────────
+    svr.Get("/api/geometry/csv_raw", [](const httplib::Request&, httplib::Response& res) {
+        std::string raw = read_file("data/sample_ansys.csv");
+        if (raw.empty()) {
+            res.status = 404;
+            res.set_content("data/sample_ansys.csv not found", "text/plain");
+        } else {
+            res.set_header("Content-Disposition", "attachment; filename=\"sample_ansys.csv\"");
+            res.set_content(raw, "text/csv");
         }
     });
 

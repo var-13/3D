@@ -48,11 +48,70 @@
     <section id="tab-geometry" class="tab-panel active" role="tabpanel"
              aria-labelledby="btn-geometry">
       <div class="panel-header">
-        <h1>Geometry / CAD Viewer</h1>
-        <p class="panel-desc">Load an ASCII STL file or a node CSV to inspect 3-D geometry and temperature data.</p>
+        <h1>🧊 3-D Geometry &amp; FEA Thermal Point Cloud Viewer</h1>
+        <p class="panel-desc">Interactive Three.js WebGL viewport rendering synthetic CAD surface geometry (ASCII STL) alongside mapped ANSYS FEA nodal temperatures.</p>
       </div>
-      <div class="status-bar info" id="geo-status">Phase 4 – coming soon.</div>
-      <div class="placeholder-view">3-D viewport (Three.js) will appear here in Phase 4.</div>
+
+      <!-- Controls and Toolbar -->
+      <div class="card control-card">
+        <h2 class="card-title">🎮 3-D Viewport Controls &amp; Overlays</h2>
+        <div class="btn-group">
+          <button id="btn-toggle-mesh" class="btn btn-primary">Toggle STL Mesh (Solid/Wireframe)</button>
+          <button id="btn-toggle-nodes" class="btn btn-secondary">Toggle Point Cloud</button>
+          <button id="btn-reset-view" class="btn btn-outline">↺ Reset Camera</button>
+          <button id="btn-toggle-spin" class="btn btn-outline">▶ Auto-Rotate</button>
+          <a href="/api/geometry/stl_raw" download="sample.stl" class="btn btn-outline">⬇ Download STL</a>
+          <a href="/api/geometry/csv_raw" download="sample_ansys.csv" class="btn btn-outline">⬇ Download CSV</a>
+        </div>
+        <div id="geo-status" class="status-bar info">Initialising WebGL canvas... Drag to orbit, Right-click to pan, Scroll to zoom.</div>
+      </div>
+
+      <!-- KPI Metrics -->
+      <div class="kpi-grid">
+        <div class="kpi-card">
+          <div class="kpi-label">CAD Facets (Triangles)</div>
+          <div class="kpi-value" id="kpi-geo-triangles">12</div>
+          <div class="kpi-sub" id="kpi-geo-name">heatsink_block</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Total Surface Area</div>
+          <div class="kpi-value highlight" id="kpi-geo-area">0.0070 m²</div>
+          <div class="kpi-sub">7,000 mm²</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Thermal FEA Nodes</div>
+          <div class="kpi-value" id="kpi-geo-nodes">65</div>
+          <div class="kpi-sub">Gaussian hotspot profile</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Temperature Range</div>
+          <div class="kpi-value" id="kpi-geo-trange">28.2 – 94.8 °C</div>
+          <div class="kpi-sub">Peak ΔT = 66.6 °C</div>
+        </div>
+      </div>
+
+      <!-- 3D Viewport and Node Inspector Container -->
+      <div class="geo-workspace">
+        <div class="viewport-card">
+          <div id="viewport-3d" class="viewport-canvas-container"></div>
+          <div class="viewport-overlay-legend">
+            <span class="legend-label">28 °C</span>
+            <div class="legend-bar"></div>
+            <span class="legend-label">95 °C</span>
+          </div>
+        </div>
+
+        <div class="card inspector-card">
+          <h2 class="card-title">🔍 Node Inspector</h2>
+          <div id="inspector-placeholder" class="text-muted">Click or hover over any colored FEA node in the 3-D viewport to inspect local thermal state.</div>
+          <div id="inspector-details" style="display: none;">
+            <div class="inspector-item"><span class="lbl">Node ID:</span> <span class="val highlight" id="insp-id">#18</span></div>
+            <div class="inspector-item"><span class="lbl">Temperature:</span> <span class="val" id="insp-temp">94.80 °C</span></div>
+            <div class="inspector-item"><span class="lbl">Coordinates:</span> <span class="val" id="insp-pos">(25.0, 25.0, 0.0) mm</span></div>
+            <div class="inspector-item"><span class="lbl">Heat Status:</span> <span class="badge" id="insp-badge">CRITICAL HOTSPOT</span></div>
+          </div>
+        </div>
+      </div>
     </section>
 
     <!-- ── THERMAL ANALYSIS ──────────────────────────────────────── -->
@@ -303,5 +362,6 @@
 
   <script src="vendor/chart.umd.min.js"></script>
   <script src="js/app.js"></script>
+  <script type="module" src="js/viewer3d.js"></script>
 </body>
 </html>

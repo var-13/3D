@@ -403,3 +403,97 @@ body {
 .text-success { color: #4ade80; }
 .text-danger { color: #f87171; }
 
+/* ── Geometry & 3D Viewport ──────────────────────────────────────────────── */
+.geo-workspace {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 1.5rem;
+  margin-top: 1.5rem;
+}
+
+@media (max-width: 900px) {
+  .geo-workspace {
+    grid-template-columns: 1fr;
+  }
+}
+
+.viewport-card {
+  position: relative;
+  background: #090b10;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow);
+  height: 520px;
+}
+
+.viewport-canvas-container {
+  width: 100%;
+  height: 100%;
+  cursor: grab;
+}
+
+.viewport-canvas-container:active {
+  cursor: grabbing;
+}
+
+.viewport-overlay-legend {
+  position: absolute;
+  bottom: 1rem;
+  left: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: rgba(15, 23, 42, 0.85);
+  backdrop-filter: blur(8px);
+  padding: 0.4rem 0.8rem;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.legend-bar {
+  width: 120px;
+  height: 10px;
+  border-radius: 3px;
+  background: linear-gradient(to right, #3b82f6, #06b6d4, #10b981, #facc15, #ef4444);
+}
+
+.inspector-card {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.inspector-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.6rem 0;
+  border-bottom: 1px solid rgba(42, 48, 72, 0.4);
+}
+
+.inspector-item .lbl {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+.inspector-item .val {
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.badge {
+  display: inline-block;
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  background: rgba(239, 68, 68, 0.2);
+  color: #f87171;
+  border: 1px solid rgba(239, 68, 68, 0.4);
+}
+
+
