@@ -1,15 +1,17 @@
 # ThermoBench server launcher
 # Run from project root: .\start.ps1
 
-$mingw = "C:\msys64\mingw64\bin"
-$env:PATH = "$mingw;" + $env:PATH
+$serverPath = ".\build\bin\ThermoBenchServer.exe"
 
-if (-not (Test-Path ".\build\bin\ThermoBenchServer.exe")) {
-    Write-Host "Server not built yet. Run .\build.ps1 first." -ForegroundColor Red
-    exit 1
+if (-not (Test-Path $serverPath)) {
+    Write-Host "Server binary not found at $serverPath." -ForegroundColor Red
+    Write-Host "Running build first..." -ForegroundColor Yellow
+    .\build.ps1
+    if ($LASTEXITCODE -ne 0) { exit 1 }
 }
 
-Write-Host "Starting ThermoBench server at http://localhost:8080 ..." -ForegroundColor Cyan
+Write-Host "Starting ThermoBench server on http://localhost:8080 ..." -ForegroundColor Cyan
+Write-Host "Serving UI from ./ui" -ForegroundColor Gray
 Write-Host "Press Ctrl+C to stop." -ForegroundColor Gray
 Write-Host ""
-& ".\build\bin\ThermoBenchServer.exe" ui 8080
+& $serverPath ui 8080

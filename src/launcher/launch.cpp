@@ -53,18 +53,35 @@ int main() {
     GetModuleFileNameA(nullptr, _buf, MAX_PATH);
     fs::path exe_dir = fs::path(std::string(_buf)).parent_path();
 
-    // Server binary sits alongside launcher (both built to build/bin/)
+    // Server binary search: same dir, ./bin/, or ./build/bin/
     fs::path server_exe = exe_dir / "ThermoBenchServer.exe";
-    fs::path ui_dir     = exe_dir.parent_path().parent_path() / "ui"; // build/bin/../../ui
-    int port = 8080;
-
-
     if (!fs::exists(server_exe)) {
-        // Fall back: look two directories up (running from project root build/)
-        server_exe = exe_dir / ".." / "ThermoBenchServer.exe";
+        server_exe = exe_dir / "bin" / "ThermoBenchServer.exe";
     }
     if (!fs::exists(server_exe)) {
+        server_exe = exe_dir / "build" / "bin" / "ThermoBenchServer.exe";
+    }
+    if (!fs::exists(server_exe)) {
+        server_exe = exe_dir / ".." / "ThermoBenchServer.exe";
+    }
+
+    // UI directory search: same dir (ui/), parent (../ui), or root (../../ui)
+    fs::path ui_dir = exe_dir / "ui";
+    if (!fs::exists(ui_dir)) {
+        ui_dir = exe_dir / ".." / "ui";
+    }
+    if (!fs::exists(ui_dir)) {
+        ui_dir = exe_dir / ".." / ".." / "ui";
+    }
+    int port = 8080;
+
+    if (!fs::exists(server_exe)) {
         std::cerr << "[Launch] ERROR: ThermoBenchServer.exe not found near "
+                  << exe_dir << "\n";
+        return 1;
+    }
+    if (!fs::exists(ui_dir)) {
+        std::cerr << "[Launch] ERROR: UI directory not found near "
                   << exe_dir << "\n";
         return 1;
     }
