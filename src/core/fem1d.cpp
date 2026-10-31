@@ -122,4 +122,78 @@ void apply_boundary_conditions(GlobalSystem& sys, double T0, double TL) {
     sys.F[N_node] = TL;
 }
 
+std::vector<double> solve(const GlobalSystem& sys) {
+    if (sys.num_nodes < 2) {
+        throw std::invalid_argument("solve: System must have at least 2 nodes.");
+    }
+    const int n = sys.num_nodes;
+    std::vector<double> T(n, 0.0);
+
+    // Boundary nodes are already decoupled by apply_boundary_conditions
+    T[0] = sys.F[0];
+    T[n - 1] = sys.F[n - 1];
+
+    const int M = n - 2; // Number of interior unknowns (indices 1 to n-2)
+    if (M == 0) {
+        return T;
+    }
+
+    // Vectors for interior equations:
+    // a[i]: subdiagonal (coefficient of x_{i-1}) for i = 1 .. M-1
+    // b[i]: main diagonal (coefficient of x_i) for i = 0 .. M-1
+    // c[i]: superdiagonal (coefficient of x_{i+1}) for i = 0 .. M-2
+    // d[i]: right-hand side for i = 0 .. M-1
+    std::vector<double> a(M, 0.0);
+    std::vector<double> b(M, 0.0);
+    std::vector<double> c(M, 0.0);
+    std::vector<double> d(M, 0.0);
+
+    for (int i = 0; i < M; ++i) {
+        const int node = i + 1;
+        b[i] = sys.K[node][node];
+        d[i] = sys.F[node];
+        if (i > 0) {
+            a[i] = sys.K[node][node - 1];
+        }
+        if (i < M - 1) {
+            c[i] = sys.K[node][node + 1];
+        }
+    }
+
+    // Thomas algorithm forward sweep
+    std::vector<double> c_prime(M, 0.0);
+    std::vector<double> d_prime(M, 0.0);
+
+    if (std::abs(b[0]) < 1e-15) {
+        throw std::runtime_error("solve: Zero pivot encountered in Thomas forward elimination.");
+    }
+    c_prime[0] = c[0] / b[0];
+    d_prime[0] = d[0] / b[0];
+
+    for (int i = 1; i < M; ++i) {
+        const double denom = b[i] - a[i] * c_prime[i - 1];
+        if (std::abs(denom) < 1e-15) {
+            throw std::runtime_error("solve: Zero pivot encountered in Thomas forward elimination.");
+        }
+        if (i < M - 1) {
+            c_prime[i] = c[i] / denom;
+        }
+        d_prime[i] = (d[i] - a[i] * d_prime[i - 1]) / denom;
+    }
+
+    // Back substitution
+    std::vector<double> x(M, 0.0);
+    x[M - 1] = d_prime[M - 1];
+    for (int i = M - 2; i >= 0; --i) {
+        x[i] = d_prime[i] - c_prime[i] * x[i + 1];
+    }
+
+    // Map back into full solution vector
+    for (int i = 0; i < M; ++i) {
+        T[i + 1] = x[i];
+    }
+
+    return T;
+}
+
 } // namespace thermo

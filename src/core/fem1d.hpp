@@ -47,4 +47,12 @@ GlobalSystem assemble_global(double L, double A, double k, double q, int N);
 // Throws std::invalid_argument if sys.num_nodes < 2 or boundary temperatures are non-finite.
 void apply_boundary_conditions(GlobalSystem& sys, double T0, double TL);
 
+// Solves K * T = F using the Thomas tridiagonal algorithm (TDMA) in O(N) time and O(N) space.
+// Chosen over dense solver (O(N^3) time, O(N^2) space) because:
+// 1. The 1D FEM conductance matrix is strictly tridiagonal.
+// 2. The matrix is diagonally dominant and positive-definite, guaranteeing unconditional stability without pivoting.
+// Returns vector of nodal temperatures T of size sys.num_nodes.
+// Throws std::invalid_argument if sys.num_nodes < 2, or std::runtime_error if singular matrix.
+std::vector<double> solve(const GlobalSystem& sys);
+
 } // namespace thermo

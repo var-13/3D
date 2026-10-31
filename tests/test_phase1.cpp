@@ -170,3 +170,53 @@ TEST("Phase 1 - apply_boundary_conditions: invalid inputs throw invalid_argument
     ASSERT_THROWS(thermo::apply_boundary_conditions(valid_sys, nan_val, 20.0));
     ASSERT_THROWS(thermo::apply_boundary_conditions(valid_sys, 100.0, nan_val));
 }
+
+// ── Function 4: solve ────────────────────────────────────────────────────────
+
+TEST("Phase 1 - solve: Thomas solver satisfies K*T = F to machine precision on interior") {
+    const double L = 1.0;
+    const double A = 1e-4;
+    const double k = 10.0;
+    const double q = 10000.0;
+    const int N = 10;
+    const double T0 = 100.0;
+    const double TL = 20.0;
+
+    // Keep a copy of original unconstrained system to verify residuals
+    thermo::GlobalSystem orig_sys = thermo::assemble_global(L, A, k, q, N);
+    thermo::GlobalSystem sys = orig_sys;
+
+    thermo::apply_boundary_conditions(sys, T0, TL);
+    std::vector<double> T = thermo::solve(sys);
+
+    ASSERT(static_cast<int>(T.size()) == N + 1);
+    ASSERT_NEAR(T[0], T0, 1e-12);
+    ASSERT_NEAR(T[N], TL, 1e-12);
+
+    // Verify residual on all interior rows: sum_j K_ij * T_j == F_i
+    for (int i = 1; i < N; ++i) {
+        double row_dot = 0.0;
+        for (int j = 0; j <= N; ++j) {
+            row_dot += orig_sys.K[i][j] * T[j];
+        }
+        ASSERT_NEAR(row_dot, orig_sys.F[i], 1e-10);
+    }
+}
+
+TEST("Phase 1 - solve: minimal mesh N=2 (1 interior unknown)") {
+    thermo::GlobalSystem sys = thermo::assemble_global(1.0, 1e-4, 10.0, 10000.0, 2);
+    thermo::apply_boundary_conditions(sys, 100.0, 20.0);
+    std::vector<double> T = thermo::solve(sys);
+
+    ASSERT(T.size() == 3);
+    ASSERT_NEAR(T[0], 100.0, 1e-12);
+    ASSERT_NEAR(T[2], 20.0, 1e-12);
+    // Interior node x = 0.5: Exact is 100 - 80*0.5 + 500*0.5*0.5 = 60 + 125 = 185
+    ASSERT_NEAR(T[1], 185.0, 1e-10);
+}
+
+TEST("Phase 1 - solve: invalid input throws invalid_argument") {
+    thermo::GlobalSystem invalid_sys;
+    invalid_sys.num_nodes = 1;
+    ASSERT_THROWS(thermo::solve(invalid_sys));
+}
