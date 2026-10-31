@@ -1,17 +1,24 @@
 # ThermoBench
 
-> Windows 11 x64 engineering workbench — thermal FEA, backpropagation, multicore benchmarking, hardware simulation.  
+> Windows 11 x64 engineering workbench — thermal FEA, backpropagation, multicore benchmarking, geometry parsing, and hardware simulation.  
 > **Internship project. All data is synthetic. No credentials stored.**
 
 ---
 
 ## Quick Start (one action)
 
-1. **Open VS Code** in the project root.
-2. Press `Ctrl+Shift+B` → choose **"CMake Build"** (first time only — ~2 min).
-3. Press `F5` → choose **"Launch ThermoBench (server + browser)"**.
-
-The browser opens automatically at `http://localhost:8080`.
+1. **Open PowerShell** in the project root (with `C:\msys64\mingw64\bin` in PATH).
+2. Build and test:
+   ```powershell
+   cmake -S . -B build -G Ninja
+   cmake --build build
+   .\build\bin\RunTests.exe
+   ```
+3. Start the server:
+   ```powershell
+   .\build\bin\ThermoBenchServer.exe ui 8080
+   ```
+4. Open **http://localhost:8080** in your browser.
 
 ---
 
@@ -22,22 +29,8 @@ The browser opens automatically at `http://localhost:8080`.
 | MSYS2 / MinGW-w64 | GCC ≥ 13 | https://www.msys2.org |
 | CMake | ≥ 3.20 | bundled with MSYS2 |
 | Ninja | any | bundled with MSYS2 |
-| VS Code | any | https://code.visualstudio.com |
-| VS Code C/C++ extension | any | ms-vscode.cpptools |
 
 Add `C:\msys64\mingw64\bin` to your user `PATH`.
-
----
-
-## Manual Build & Test
-
-```powershell
-# From project root (PowerShell with mingw64\bin in PATH)
-cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Debug
-cmake --build build --parallel
-.\build\bin\RunTests.exe        # run all tests
-.\build\bin\ThermoBenchServer.exe ui 8080   # start server manually
-```
 
 ---
 
@@ -45,34 +38,64 @@ cmake --build build --parallel
 
 ```
 ThermoBench
-├── src/core/       Pure C++17 numerics (FEA, backprop, batch, parsers, mocks)
-├── src/server/     Thin HTTP server (cpp-httplib). Routes only – no maths.
-├── src/launcher/   Launch.exe – starts server, opens browser, handles shutdown.
-├── ui/             Plain HTML/CSS/JS (one page, 4 tabs). No build step needed.
-│   └── vendor/     Chart.js 4.4.3, Three.js r167 – saved locally, no CDN.
-├── tests/          Tiny test runner + per-phase test files. No external deps.
-├── data/           Synthetic sample STL, CSV, PROVENANCE.md.
-├── results/        Generated CSVs and plots (git-ignored).
-└── docs/           Report, block diagram, AI_LOG, PROGRESS, DEPENDENCIES.
+├── src/core/        Pure C++17 numerics (no UI/network code)
+│   ├── fem1d        1-D FEM heat-conduction solver (Thomas algorithm)
+│   ├── backprop     Backpropagation + gradient-descent trainer
+│   ├── batch_solver Multicore parallel batch solver (std::thread)
+│   ├── geometry     ASCII STL + ANSYS CSV point-cloud parsers
+│   └── embedded_mock  MCU / FPGA / JTAG mock devices + telemetry
+├── src/server/      Thin HTTP server (cpp-httplib). Routes only – no maths.
+├── src/launcher/    Launch.exe – starts server, opens browser, handles shutdown.
+├── ui/              Plain HTML/CSS/JS (one page, 4 tabs). No build step needed.
+│   └── vendor/      Chart.js 4.4.3, Three.js r167 – saved locally, no CDN.
+├── tests/           Tiny test runner + per-phase test files (56 tests, 0 deps).
+├── data/            Synthetic sample STL, ANSYS CSV, PROVENANCE.md.
+├── results/         Generated CSVs (git-ignored).
+└── docs/            EMBEDDED.md, AI_LOG.md, PROGRESS.md, DEPENDENCIES.md.
 ```
 
 ---
 
-## Supported Formats
+## What Each Tab Does
+
+| Tab | Feature | Core module |
+|-----|---------|-------------|
+| **Geometry** | Load ASCII STL or ANSYS CSV, view 3-D mesh (Three.js) | `geometry.cpp` |
+| **Thermal Analysis** | 1-D FEM solver — set BCs, solve, plot T(x) | `fem1d.cpp` |
+| **Performance** | Multicore batch solve + backprop training, live charts | `batch_solver.cpp`, `backprop.cpp` |
+| **Hardware** | Discover MCU/FPGA/JTAG mocks, stream telemetry, inject faults | `embedded_mock.cpp` |
+
+---
+
+## Supported File Formats
 
 | File type | Tab | Description |
 |-----------|-----|-------------|
-| ASCII STL | Geometry | Triangle mesh – validates structure, rejects NaN/Inf |
+| ASCII STL | Geometry | Triangle mesh — validates structure, rejects NaN/Inf |
 | CSV (nodes) | Geometry | Columns: node_id, x_m, y_m, z_m, temperature_C |
 
 ---
 
-## Known Limitations (Phase 0)
+## Test Results
 
-- Phases 1–6 not yet implemented; all tabs show placeholder text.
-- Launcher opens browser but polls TCP only (does not verify HTTP 200 yet).
-- No pre-built binaries — must build from source.
+```
+56 / 56 tests PASSED
+  Phase 0 — Launcher / Build: 3 tests
+  Phase 1 — FEM 1D Solver   : 12 tests
+  Phase 2 — Backpropagation : 15 tests
+  Phase 3 — Batch Solver    : 12 tests
+  Phase 4 — Geometry Parsers: 8 tests
+  Phase 5 — Embedded Mocks  : 6 tests
+```
+
+---
+
+## Known Limitations
+
 - Binary STL not supported (ASCII only).
+- HTTP server uses plain HTTP; no TLS/HTTPS.
+- Telemetry is simulated; no real hardware bus.
+- Neural network is a small demo net (1 hidden layer, 3 inputs → 1 output).
 
 ---
 
