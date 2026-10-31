@@ -13,9 +13,12 @@
 #include <fstream>
 #include <string>
 #include <filesystem>
+#include <thread>
+#include <algorithm>
 #include "core/fem1d.hpp"
 #include "core/batch_solver.hpp"
 #include "core/geometry.hpp"
+#include "core/embedded_mock.hpp"
 
 namespace fs = std::filesystem;
 
@@ -279,7 +282,66 @@ int main(int argc, char* argv[]) {
         }
     });
 
+    // ── /api/hardware/devices ─────────────────────────────────────────────
+    svr.Get("/api/hardware/devices", [](const httplib::Request&, httplib::Response& res) {
+        res.set_content(
+            thermobench::embedded::EmbeddedManager::instance().devices_to_json(),
+            "application/json"
+        );
+    });
+
+    // ── /api/hardware/telemetry_all ──────────────────────────────────────
+    svr.Get("/api/hardware/telemetry_all", [](const httplib::Request&, httplib::Response& res) {
+        res.set_content(
+            thermobench::embedded::EmbeddedManager::instance().all_telemetry_to_json(),
+            "application/json"
+        );
+    });
+
+    // ── /api/hardware/telemetry/:id ──────────────────────────────────────
+    svr.Get("/api/hardware/telemetry/:id", [](const httplib::Request& req, httplib::Response& res) {
+        const std::string id = req.path_params.at("id");
+        try {
+            res.set_content(
+                thermobench::embedded::EmbeddedManager::instance().telemetry_to_json(id),
+                "application/json"
+            );
+        } catch (const std::exception& e) {
+            res.status = 404;
+            res.set_content("{\"error\":\"" + std::string(e.what()) + "\"}", "application/json");
+        }
+    });
+
+    // ── POST /api/hardware/timeout/:id ───────────────────────────────────
+    svr.Post("/api/hardware/timeout/:id", [](const httplib::Request& req, httplib::Response& res) {
+        const std::string id = req.path_params.at("id");
+        bool ok = thermobench::embedded::EmbeddedManager::instance().trigger_timeout(id, 500);
+        res.set_content(ok
+            ? "{\"success\":true,\"msg\":\"Timeout injected\"}"
+            : "{\"success\":false,\"msg\":\"Device not found\"}",
+            "application/json"
+        );
+    });
+
+    // ── POST /api/hardware/recover/:id ───────────────────────────────────
+    svr.Post("/api/hardware/recover/:id", [](const httplib::Request& req, httplib::Response& res) {
+        const std::string id = req.path_params.at("id");
+        bool ok = thermobench::embedded::EmbeddedManager::instance().recover_device(id);
+        res.set_content(ok
+            ? "{\"success\":true,\"msg\":\"Device recovered\"}"
+            : "{\"success\":false,\"msg\":\"Device not found\"}",
+            "application/json"
+        );
+    });
+
+    // ── POST /api/hardware/reset ──────────────────────────────────────────
+    svr.Post("/api/hardware/reset", [](const httplib::Request&, httplib::Response& res) {
+        thermobench::embedded::EmbeddedManager::instance().reset();
+        res.set_content("{\"success\":true,\"msg\":\"All devices reset\"}", "application/json");
+    });
+
     // ── Static file serving ───────────────────────────────────────────────
+
     svr.Get("/.*", [&ui_dir](const httplib::Request& req, httplib::Response& res) {
         // Strip leading '/'
         std::string rel = req.path.substr(1);

@@ -622,3 +622,165 @@
   runBenchmark();
 })();
 
+
+
+// -- Phase 5: Hardware Monitor Module ----------------------------------------
+(function initHardwareMonitor() {
+  const btnDiscover  = document.getElementById("btn-hw-discover");
+  const btnTelemetry = document.getElementById("btn-hw-telemetry");
+  const btnReset     = document.getElementById("btn-hw-reset");
+  const statusEl     = document.getElementById("hw-status");
+  const deviceCards  = document.getElementById("hw-device-cards");
+  const tbodyHw      = document.getElementById("tbody-hw");
+  const eventLog     = document.getElementById("hw-event-log");
+
+  if (!btnDiscover) return;
+
+  let devices = [];
+
+  function setStatus(msg, type) {
+    if (!statusEl) return;
+    statusEl.textContent = msg;
+    statusEl.className = "status-bar " + (type || "info");
+  }
+
+  function logEvent(msg) {
+    if (!eventLog) return;
+    const ts = new Date().toLocaleTimeString();
+    const line = document.createElement("div");
+    line.textContent = "[" + ts + "]  " + msg;
+    if (eventLog.firstChild && eventLog.firstChild.textContent === "No events yet.") {
+      eventLog.innerHTML = "";
+    }
+    eventLog.prepend(line);
+  }
+
+  function stateColor(state) {
+    if (state === "CONNECTED")     return "#22c55e";
+    if (state === "TIMEOUT_ERROR") return "#ef4444";
+    if (state === "DISCONNECTED")  return "#94a3b8";
+    return "#f97316";
+  }
+
+  function renderDeviceCards(devList) {
+    deviceCards.innerHTML = "";
+    devList.forEach(function(d) {
+      const card = document.createElement("div");
+      card.className = "kpi-card";
+      card.id = "hw-card-" + d.id;
+      card.innerHTML =
+        '<div class="kpi-label">' + d.type + ' &nbsp;&middot;&nbsp; <span style="color:#94a3b8;font-size:0.75rem;">' + d.id + '</span></div>' +
+        '<div class="kpi-value" style="font-size:1rem;line-height:1.4;">' + d.name + '</div>' +
+        '<div class="kpi-sub" style="margin-top:6px;">' +
+          'State: <strong style="color:' + stateColor(d.state) + '">' + d.state + '</strong><br>' +
+          'Firmware: ' + d.firmware + '<br>' +
+          'Rail: ' + d.voltage_rail_V + ' V' +
+        '</div>' +
+        '<div style="margin-top:10px;display:flex;gap:6px;flex-wrap:wrap;">' +
+          '<button onclick="window._hwFault(\'' + d.id + '\')" class="btn btn-outline" style="font-size:0.75rem;padding:4px 8px;">&#x26A1; Inject Fault</button>' +
+          '<button onclick="window._hwRecover(\'' + d.id + '\')" class="btn btn-outline" style="font-size:0.75rem;padding:4px 8px;">&#x2705; Recover</button>' +
+        '</div>';
+      deviceCards.appendChild(card);
+    });
+  }
+
+  function renderTelemetryTable(packets) {
+    tbodyHw.innerHTML = "";
+    packets.forEach(function(t) {
+      const isFault = t.fault_detected;
+      const tr = document.createElement("tr");
+      if (isFault) tr.style.background = "rgba(239,68,68,0.08)";
+      tr.innerHTML =
+        '<td><strong>' + t.device_id + '</strong></td>' +
+        '<td>' + (t.type || "—") + '</td>' +
+        '<td><span style="color:' + stateColor(t.state) + ';font-weight:600;">' + t.state + '</span></td>' +
+        '<td>' + (t.temperature_C !== undefined ? t.temperature_C.toFixed(1) : "—") + '</td>' +
+        '<td>' + (t.voltage_V    !== undefined ? t.voltage_V.toFixed(3)    : "—") + '</td>' +
+        '<td>' + (t.current_mA   !== undefined ? t.current_mA.toFixed(1)   : "—") + '</td>' +
+        '<td>' + (t.power_mW     !== undefined ? t.power_mW.toFixed(1)     : "—") + '</td>' +
+        '<td style="color:' + (isFault ? "#ef4444" : "#22c55e") + ';font-weight:700;">' + (isFault ? "&#x26A0; FAULT" : "&#x2713; OK") + '</td>' +
+        '<td>' +
+          '<button onclick="window._hwFault(\'' + t.device_id + '\')"   class="btn btn-outline" style="font-size:0.72rem;padding:3px 7px;">&#x26A1; Fault</button> ' +
+          '<button onclick="window._hwRecover(\'' + t.device_id + '\')" class="btn btn-outline" style="font-size:0.72rem;padding:3px 7px;">&#x2705; Recover</button>' +
+        '</td>';
+      tbodyHw.appendChild(tr);
+    });
+  }
+
+  async function discover() {
+    setStatus("Discovering devices...", "info");
+    try {
+      const res  = await fetch("/api/hardware/devices");
+      const data = await res.json();
+      devices = data.devices || [];
+      renderDeviceCards(devices);
+      setStatus("Found " + data.device_count + " device(s): " + devices.map(function(d){ return d.name; }).join(", "), "ok");
+      logEvent("Discovered " + data.device_count + " device(s)");
+      await readTelemetry();
+    } catch (err) {
+      setStatus("Discovery failed: " + err.message, "error");
+    }
+  }
+
+  async function readTelemetry() {
+    setStatus("Reading telemetry...", "info");
+    try {
+      const res  = await fetch("/api/hardware/telemetry_all");
+      const data = await res.json();
+      const packets = data.packets || [];
+      packets.forEach(function(p) {
+        const dev = devices.find(function(d){ return d.id === p.device_id; });
+        p.type = dev ? dev.type : "?";
+      });
+      renderTelemetryTable(packets);
+      const faults = packets.filter(function(p){ return p.fault_detected; }).length;
+      setStatus("Telemetry updated — " + packets.length + " device(s), " + faults + " fault(s)", faults ? "error" : "ok");
+    } catch (err) {
+      setStatus("Telemetry read failed: " + err.message, "error");
+    }
+  }
+
+  window._hwFault = async function(id) {
+    try {
+      await fetch("/api/hardware/timeout/" + id, { method: "POST" });
+      logEvent("FAULT injected -> " + id + " (ERR_TIMEOUT)");
+      setStatus("Fault injected on " + id, "error");
+      await readTelemetry();
+    } catch (err) {
+      logEvent("ERROR injecting fault on " + id + ": " + err.message);
+    }
+  };
+
+  window._hwRecover = async function(id) {
+    try {
+      await fetch("/api/hardware/recover/" + id, { method: "POST" });
+      logEvent("RECOVERED -> " + id + " (bus re-enumerated)");
+      setStatus(id + " recovered successfully", "ok");
+      await readTelemetry();
+    } catch (err) {
+      logEvent("ERROR recovering " + id + ": " + err.message);
+    }
+  };
+
+  async function resetAll() {
+    try {
+      await fetch("/api/hardware/reset", { method: "POST" });
+      logEvent("All devices reset to defaults");
+      setStatus("All devices reset.", "info");
+      await discover();
+    } catch (err) {
+      setStatus("Reset failed: " + err.message, "error");
+    }
+  }
+
+  btnDiscover .addEventListener("click", discover);
+  btnTelemetry.addEventListener("click", readTelemetry);
+  btnReset    .addEventListener("click", resetAll);
+
+  const hwTabBtn = document.getElementById("btn-hardware");
+  if (hwTabBtn) {
+    hwTabBtn.addEventListener("click", function() {
+      if (devices.length === 0) discover();
+    });
+  }
+})();

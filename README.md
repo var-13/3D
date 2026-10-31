@@ -5,20 +5,19 @@
 
 ---
 
-## Quick Start (one action)
+## Quick Start (two commands — no PATH setup needed)
 
-1. **Open PowerShell** in the project root (with `C:\msys64\mingw64\bin` in PATH).
-2. Build and test:
-   ```powershell
-   cmake -S . -B build -G Ninja
-   cmake --build build
-   .\build\bin\RunTests.exe
-   ```
-3. Start the server:
-   ```powershell
-   .\build\bin\ThermoBenchServer.exe ui 8080
-   ```
-4. Open **http://localhost:8080** in your browser.
+Open a plain PowerShell in the project root and run:
+
+```powershell
+.\build.ps1      # configure, compile, and run all 61 tests
+.\start.ps1      # start the HTTP server
+```
+
+Then open **http://localhost:8080** in your browser.
+
+> The scripts hard-code `C:\msys64\mingw64\bin` so `cmake`/`ninja`/`g++`
+> are found automatically — no PATH changes required.
 
 ---
 

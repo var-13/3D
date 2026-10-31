@@ -346,11 +346,63 @@
     <section id="tab-hardware" class="tab-panel" role="tabpanel"
              aria-labelledby="btn-hardware">
       <div class="panel-header">
-        <h1>Hardware Monitor <span class="badge-sim">SIMULATED</span></h1>
-        <p class="panel-desc">Mock adapters for MCU, FPGA and JTAG. All devices are simulated – no real hardware required.</p>
+        <h1>🖥 Hardware Monitor <span class="badge-sim">SIMULATED</span></h1>
+        <p class="panel-desc">Mock embedded devices: STM32 MCU, Artix-7 FPGA, FTDI JTAG bridge. Stream live telemetry, inject faults, and test recovery — no real hardware needed.</p>
       </div>
-      <div class="status-bar info" id="hw-status">Phase 5 – coming soon.</div>
-      <div class="placeholder-view">Device panel and telemetry will appear here in Phase 5.</div>
+
+      <!-- Controls -->
+      <div class="card control-card">
+        <h2 class="card-title">⚙️ Device Controls</h2>
+        <div class="btn-group">
+          <button id="btn-hw-discover"  class="btn btn-primary">🔍 Discover Devices</button>
+          <button id="btn-hw-telemetry" class="btn btn-secondary">📡 Read All Telemetry</button>
+          <button id="btn-hw-reset"     class="btn btn-outline">↺ Reset All Devices</button>
+        </div>
+        <div id="hw-status" class="status-bar info">Click "Discover Devices" to initialise all mock adapters.</div>
+      </div>
+
+      <!-- Device Cards Row -->
+      <div class="kpi-grid" id="hw-device-cards">
+        <!-- filled by JS -->
+        <div class="kpi-card text-muted" style="grid-column:1/-1;text-align:center;padding:2rem;">
+          No devices discovered yet. Click "Discover Devices".
+        </div>
+      </div>
+
+      <!-- Live Telemetry Table -->
+      <div class="card table-card">
+        <h2 class="card-title">📊 Live Telemetry Stream</h2>
+        <div class="table-responsive">
+          <table class="data-table" id="table-hw-telemetry">
+            <thead>
+              <tr>
+                <th>Device</th>
+                <th>Type</th>
+                <th>State</th>
+                <th>Temp [°C]</th>
+                <th>Voltage [V]</th>
+                <th>Current [mA]</th>
+                <th>Power [mW]</th>
+                <th>Fault</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="tbody-hw">
+              <tr><td colspan="9" class="text-center text-muted">Run "Read All Telemetry" to populate.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Fault History Log -->
+      <div class="card table-card">
+        <h2 class="card-title">🚨 Fault &amp; Recovery Event Log</h2>
+        <div id="hw-event-log" style="font-family:monospace;font-size:0.82rem;color:#94a3b8;
+             background:#0f1422;border-radius:8px;padding:1rem;min-height:80px;max-height:200px;
+             overflow-y:auto;line-height:1.8;">
+          No events yet.
+        </div>
+      </div>
     </section>
 
   </main>
