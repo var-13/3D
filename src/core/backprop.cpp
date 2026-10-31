@@ -101,8 +101,20 @@ double finite_diff_check(double x, double y, const NetworkParams& p, double eps)
 }
 
 NetworkParams update_step(const NetworkParams& p, const Gradients& g, double lr) {
-    (void)p; (void)g; (void)lr;
-    return {}; // Stub for func 4
+    if (!std::isfinite(lr) || lr <= 0.0) {
+        throw std::invalid_argument("update_step: Learning rate must be positive and finite.");
+    }
+    if (!std::isfinite(g.dw) || !std::isfinite(g.db) || !std::isfinite(g.dv) || !std::isfinite(g.dc)) {
+        throw std::invalid_argument("update_step: Gradients must be finite numbers.");
+    }
+
+    NetworkParams p_new;
+    p_new.w = p.w - lr * g.dw;
+    p_new.b = p.b - lr * g.db;
+    p_new.v = p.v - lr * g.dv;
+    p_new.c = p.c - lr * g.dc;
+
+    return p_new;
 }
 
 std::vector<StepRecord> train_steps(double x, double y, NetworkParams p, double lr, int num_steps) {

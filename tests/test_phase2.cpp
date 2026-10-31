@@ -141,3 +141,43 @@ TEST("Phase 2 - finite_diff_check: non-positive eps throws invalid_argument") {
     ASSERT_THROWS(thermo::finite_diff_check(1.0, 2.0, p, 0.0));
     ASSERT_THROWS(thermo::finite_diff_check(1.0, 2.0, p, -1e-6));
 }
+
+// ── Function 4: update_step ──────────────────────────────────────────────────
+
+TEST("Phase 2 - update_step: simultaneous update matches brief values exactly") {
+    const double x = 1.0;
+    const double y = 2.0;
+    thermo::NetworkParams p0;
+    p0.w = 0.5;
+    p0.b = 0.0;
+    p0.v = 1.0;
+    p0.c = 0.0;
+
+    const double lr = 0.1;
+    thermo::Gradients g = thermo::gradients(x, y, p0);
+    thermo::NetworkParams p1 = thermo::update_step(p0, g, lr);
+
+    // Brief values: w ~ 0.6209, b ~ 0.1209, v ~ 1.0711, c ~ 0.1538
+    ASSERT_NEAR(p1.w, 0.6209, 1e-3);
+    ASSERT_NEAR(p1.b, 0.1209, 1e-3);
+    ASSERT_NEAR(p1.v, 1.0711, 1e-3);
+    ASSERT_NEAR(p1.c, 0.1538, 1e-3);
+
+    // Exact formula check:
+    ASSERT_NEAR(p1.w, p0.w - lr * g.dw, 1e-12);
+    ASSERT_NEAR(p1.b, p0.b - lr * g.db, 1e-12);
+    ASSERT_NEAR(p1.v, p0.v - lr * g.dv, 1e-12);
+    ASSERT_NEAR(p1.c, p0.c - lr * g.dc, 1e-12);
+
+    // Verify loss decreases after one step
+    thermo::ForwardResult fwd0 = thermo::forward(x, y, p0);
+    thermo::ForwardResult fwd1 = thermo::forward(x, y, p1);
+    ASSERT(fwd1.loss < fwd0.loss);
+}
+
+TEST("Phase 2 - update_step: non-positive or non-finite lr throws invalid_argument") {
+    thermo::NetworkParams p;
+    thermo::Gradients g;
+    ASSERT_THROWS(thermo::update_step(p, g, 0.0));
+    ASSERT_THROWS(thermo::update_step(p, g, -0.1));
+}
