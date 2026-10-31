@@ -118,3 +118,55 @@ TEST("Phase 1 - assemble_global: invalid N and negative params throw invalid_arg
     const double nan_val = std::numeric_limits<double>::quiet_NaN();
     ASSERT_THROWS(thermo::assemble_global(nan_val, 1e-4, 10.0, 10000.0, 10));
 }
+
+// ── Function 3: apply_boundary_conditions ────────────────────────────────────
+
+TEST("Phase 1 - apply_boundary_conditions: row/column elimination and RHS modification") {
+    const double L = 1.0;
+    const double A = 1e-4;
+    const double k = 10.0;
+    const double q = 10000.0;
+    const int N = 10;
+    const double T0 = 100.0;
+    const double TL = 20.0;
+
+    thermo::GlobalSystem sys = thermo::assemble_global(L, A, k, q, N);
+
+    const double orig_K10 = sys.K[1][0]; // -0.01
+    const double orig_F1  = sys.F[1];    // 0.1
+    const double orig_KNminus1_N = sys.K[N-1][N]; // -0.01
+    const double orig_FNminus1  = sys.F[N-1];     // 0.1
+
+    thermo::apply_boundary_conditions(sys, T0, TL);
+
+    // Boundary rows decoupled
+    ASSERT_NEAR(sys.K[0][0], 1.0, 1e-12);
+    ASSERT_NEAR(sys.K[0][1], 0.0, 1e-12);
+    ASSERT_NEAR(sys.K[1][0], 0.0, 1e-12);
+    ASSERT_NEAR(sys.F[0], T0, 1e-12);
+
+    ASSERT_NEAR(sys.K[N][N], 1.0, 1e-12);
+    ASSERT_NEAR(sys.K[N][N-1], 0.0, 1e-12);
+    ASSERT_NEAR(sys.K[N-1][N], 0.0, 1e-12);
+    ASSERT_NEAR(sys.F[N], TL, 1e-12);
+
+    // Interior RHS modified by column elimination
+    ASSERT_NEAR(sys.F[1], orig_F1 - orig_K10 * T0, 1e-12);
+    ASSERT_NEAR(sys.F[N-1], orig_FNminus1 - orig_KNminus1_N * TL, 1e-12);
+
+    // Other interior nodes untouched
+    for (int i = 2; i < N - 1; ++i) {
+        ASSERT_NEAR(sys.F[i], q * A * (L / N), 1e-12);
+    }
+}
+
+TEST("Phase 1 - apply_boundary_conditions: invalid inputs throw invalid_argument") {
+    thermo::GlobalSystem empty_sys;
+    empty_sys.num_nodes = 1;
+    ASSERT_THROWS(thermo::apply_boundary_conditions(empty_sys, 100.0, 20.0));
+
+    thermo::GlobalSystem valid_sys = thermo::assemble_global(1.0, 1e-4, 10.0, 10000.0, 10);
+    const double nan_val = std::numeric_limits<double>::quiet_NaN();
+    ASSERT_THROWS(thermo::apply_boundary_conditions(valid_sys, nan_val, 20.0));
+    ASSERT_THROWS(thermo::apply_boundary_conditions(valid_sys, 100.0, nan_val));
+}
