@@ -196,4 +196,30 @@ std::vector<double> solve(const GlobalSystem& sys) {
     return T;
 }
 
+double exact_solution(double x, double L, double k, double q, double T0, double TL) {
+    if (!std::isfinite(x) || !std::isfinite(L) || !std::isfinite(k) ||
+        !std::isfinite(q) || !std::isfinite(T0) || !std::isfinite(TL)) {
+        throw std::invalid_argument("exact_solution: All arguments must be finite real numbers.");
+    }
+    if (L <= 0.0) {
+        throw std::invalid_argument("exact_solution: Domain length L must be positive.");
+    }
+    if (k <= 0.0) {
+        throw std::invalid_argument("exact_solution: Thermal conductivity k must be positive.");
+    }
+    if (x < -1e-12 || x > L + 1e-12) {
+        std::ostringstream oss;
+        oss << "exact_solution: Coordinate x=" << x << " is outside the domain [0, " << L << "].";
+        throw std::invalid_argument(oss.str());
+    }
+
+    // Clamp tiny numerical overflow at boundary
+    if (x < 0.0) x = 0.0;
+    if (x > L) x = L;
+
+    const double linear_part = T0 + ((TL - T0) / L) * x;
+    const double source_part = (q / (2.0 * k)) * x * (L - x);
+    return linear_part + source_part;
+}
+
 } // namespace thermo

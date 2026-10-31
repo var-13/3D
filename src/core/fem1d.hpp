@@ -55,4 +55,9 @@ void apply_boundary_conditions(GlobalSystem& sys, double T0, double TL);
 // Throws std::invalid_argument if sys.num_nodes < 2, or std::runtime_error if singular matrix.
 std::vector<double> solve(const GlobalSystem& sys);
 
+// Evaluates the exact analytical temperature at coordinate x:
+// T(x) = T0 + ((TL - T0) / L) * x + (q / (2*k)) * x * (L - x)
+// Throws std::invalid_argument if L <= 0, k <= 0, x < 0, x > L, or any input is non-finite.
+double exact_solution(double x, double L, double k, double q, double T0, double TL);
+
 } // namespace thermo

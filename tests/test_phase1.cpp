@@ -220,3 +220,43 @@ TEST("Phase 1 - solve: invalid input throws invalid_argument") {
     invalid_sys.num_nodes = 1;
     ASSERT_THROWS(thermo::solve(invalid_sys));
 }
+
+// ── Function 5: exact_solution ───────────────────────────────────────────────
+
+TEST("Phase 1 - exact_solution: matches known analytical benchmark points") {
+    const double L = 1.0;
+    const double k = 10.0;
+    const double q = 10000.0;
+    const double T0 = 100.0;
+    const double TL = 20.0;
+
+    // Boundaries
+    ASSERT_NEAR(thermo::exact_solution(0.0, L, k, q, T0, TL), 100.0, 1e-12);
+    ASSERT_NEAR(thermo::exact_solution(1.0, L, k, q, T0, TL), 20.0, 1e-12);
+
+    // Midpoint: 100 - 80(0.5) + 500(0.5)(0.5) = 60 + 125 = 185.0
+    ASSERT_NEAR(thermo::exact_solution(0.5, L, k, q, T0, TL), 185.0, 1e-12);
+
+    // Peak at x = 0.42: 100 - 80(0.42) + 500(0.42)(0.58) = 188.2
+    ASSERT_NEAR(thermo::exact_solution(0.42, L, k, q, T0, TL), 188.2, 1e-12);
+}
+
+TEST("Phase 1 - exact_solution: out of bounds and non-finite inputs throw invalid_argument") {
+    const double L = 1.0;
+    const double k = 10.0;
+    const double q = 10000.0;
+
+    // Out of domain bounds
+    ASSERT_THROWS(thermo::exact_solution(-0.1, L, k, q, 100.0, 20.0));
+    ASSERT_THROWS(thermo::exact_solution(1.1, L, k, q, 100.0, 20.0));
+
+    // Negative conductivity
+    ASSERT_THROWS(thermo::exact_solution(0.5, L, -10.0, q, 100.0, 20.0));
+
+    // Negative length
+    ASSERT_THROWS(thermo::exact_solution(0.5, -1.0, k, q, 100.0, 20.0));
+
+    // NaN input
+    const double nan_val = std::numeric_limits<double>::quiet_NaN();
+    ASSERT_THROWS(thermo::exact_solution(nan_val, L, k, q, 100.0, 20.0));
+}
