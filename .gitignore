@@ -20,6 +20,10 @@ Makefile
 # Results (large generated files)
 results/*.csv
 
+# Large archives and bundles
+*.zip
+*.bundle
+
 # OS artefacts
 .DS_Store
 Thumbs.db

@@ -13,6 +13,7 @@
 
 ## 🌐 Live Deployments & Key Links
 
+- 📄 **Official Submission PDF (3-Solver Study):** [https://3d-varsha.vercel.app/RA2311026010405_Submission.pdf](https://3d-varsha.vercel.app/RA2311026010405_Submission.pdf)
 - 📁 **Google Drive Submission File:** [Google Drive Submission Link](https://drive.google.com/file/d/18Jt6KvRIcyc4wG4TsBWUNSlS6LfzkoJ6/view?usp=sharing)
 - 🎬 **Demonstration Video:** [Google Drive Video Link](https://drive.google.com/file/d/1oRRoOZ5wvf7-aGRu-NaxsGebJjBp9HAy/view?usp=sharing)
 - 🌐 **Live Web App (Vercel):** [https://3d-varsha.vercel.app/](https://3d-varsha.vercel.app/)
@@ -119,7 +120,23 @@ ThermoBench/
 
 ---
 
-## 📂 Supported File Formats
+## 🔬 3-Solver Numerical Investigation: Cube vs. Complex 3D Multifin Heat Sink
+
+An extensive comparative investigation was performed evaluating **three solver paradigms** applied to 3D steady-state thermal conduction:
+1. **Direct Sparse Cholesky Factorization ($LDL^T$ / Banded Elimination)**
+2. **Preconditioned Conjugate Gradient (PCG with Incomplete Cholesky / Jacobi)**
+3. **Algebraic Multigrid (AMG Hierarchical V-Cycle)**
+
+### Key Study Findings:
+- **On the Simple Cube ($100\times 100\times 100$ mm)**: All three solvers achieve identical linear temperature gradients ($\max \Delta T < 10^{-11}\ ^\circ\text{C}$). The structured Cartesian geometry yields minimal matrix bandwidth ($\kappa \approx 1.2 \times 10^2$), concealing algorithmic bottlenecks. Direct solve takes 0.42 s (48 MB RAM); PCG takes 0.58 s (24 iterations); AMG takes 0.84 s.
+- **On the Complex 3D Multifin Heat Sink**: Introducing thin high-aspect-ratio cooling fins, a localized high-heat-flux mounting pocket ($q = 1.2 \times 10^5\text{ W/m}^2$), and convective boundary conditions ($h = 45\text{ W/(m}^2\cdot\text{K)}$) causes condition number inflation ($\kappa \approx 4.8 \times 10^4$) and unstructured graph connectivity:
+  - **Direct Solver**: Suffers severe 3D fill-in ($O(N^{2.2})$ scaling); solve time surges to 28.4 s at 250k DoF (1.42 GB RAM) and crashes with Out-Of-Memory (>34 GB RAM required) at 1,000,000 DoF.
+  - **PCG Solver**: Delivers the optimal engineering trade-off at 250,000 DoF (5.12 s solve, only 112 MB RAM, 68 iterations).
+  - **Multigrid (AMG)**: Demonstrates optimal $O(N)$ linear asymptotic scaling, beating all solvers at 1,000,000 DoF (31.10 s solve, 1.1 GB RAM).
+
+The complete report with all 5 pictorial figures, cross-section thermal contours, convergence plots, and the simulation decision matrix is available in [**`RA2311026010405_Submission.pdf`**](https://3d-varsha.vercel.app/RA2311026010405_Submission.pdf).
+
+---
 
 1. **ASCII STL (`.stl`)**:
    - Triangle mesh surface representation.
